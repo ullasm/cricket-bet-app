@@ -2,9 +2,11 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
+  signInWithPopup,
+  GoogleAuthProvider,
   UserCredential,
 } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from './firebase';
 
 const AVATAR_COLORS = [
@@ -47,4 +49,27 @@ export async function loginUser(
 
 export async function logoutUser(): Promise<void> {
   return signOut(auth);
+}
+
+export async function signInWithGoogle() {
+  const provider = new GoogleAuthProvider();
+  const credential = await signInWithPopup(auth, provider);
+  const { user } = credential;
+
+  const userRef = doc(db, 'users', user.uid);
+  const snap = await getDoc(userRef);
+
+  if (!snap.exists()) {
+    await setDoc(userRef, {
+      uid: user.uid,
+      displayName: user.displayName ?? 'Anonymous',
+      email: user.email ?? '',
+      totalPoints: 0,
+      role: 'member',
+      avatarColor: AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)],
+      createdAt: serverTimestamp(),
+    });
+  }
+
+  return user;
 }

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
-import { loginUser } from '@/lib/auth';
+import { loginUser, signInWithGoogle } from '@/lib/auth';
 import { useAuth } from '@/lib/AuthContext';
 
 export default function LoginPage() {
@@ -13,6 +13,20 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+
+  async function handleGoogle() {
+    setGoogleLoading(true);
+    try {
+      await signInWithGoogle();
+      toast.success('Welcome!');
+      router.replace('/dashboard');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Google sign-in failed');
+    } finally {
+      setGoogleLoading(false);
+    }
+  }
 
   useEffect(() => {
     if (!loading && user) {
@@ -109,6 +123,29 @@ export default function LoginPage() {
             )}
           </button>
         </form>
+
+        <div className="mt-4 flex items-center gap-3">
+          <div className="flex-1 border-t border-slate-700" />
+          <span className="text-xs text-slate-500">or</span>
+          <div className="flex-1 border-t border-slate-700" />
+        </div>
+
+        <button
+          type="button"
+          onClick={handleGoogle}
+          disabled={googleLoading}
+          className="mt-4 w-full flex items-center justify-center gap-3 rounded-lg bg-white hover:bg-gray-100 disabled:opacity-60 disabled:cursor-not-allowed px-4 py-2.5 font-semibold text-slate-800 transition-colors"
+        >
+          {googleLoading ? (
+            <svg className="animate-spin h-4 w-4 text-slate-600" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+            </svg>
+          ) : (
+            <span className="text-[#4285F4] font-bold text-base leading-none">G</span>
+          )}
+          Continue with Google
+        </button>
 
         <p className="mt-6 text-center text-sm text-slate-400">
           Don&apos;t have an account?{' '}
