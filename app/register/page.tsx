@@ -38,7 +38,7 @@ export default function RegisterPage() {
     setSubmitting(true);
     try {
       await registerUser(email, password, displayName);
-      toast.success('Account created! Welcome to CricketBet!');
+      toast.success('Account created! Welcome to WhoWin!');
       router.replace('/dashboard');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to create account');
@@ -53,7 +53,7 @@ export default function RegisterPage() {
     <div className="min-h-screen bg-slate-900 flex items-center justify-center px-4">
       <div className="w-full max-w-md bg-slate-800 rounded-2xl p-8 shadow-xl">
         <div className="mb-6 text-center">
-          <h1 className="text-3xl font-bold text-green-500">🏏 CricketBet</h1>
+          <h1 className="text-3xl font-bold text-green-500">🏆 WhoWin</h1>
           <p className="mt-2 text-slate-400 text-sm">Create your account</p>
         </div>
 

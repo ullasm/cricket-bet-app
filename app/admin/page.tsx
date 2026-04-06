@@ -284,7 +284,7 @@ function AdminContent() {
       {/* Navbar */}
       <header className="bg-slate-800 border-b border-slate-700 px-6 py-4">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <h1 className="text-xl font-bold text-green-500">🏏 CricketBet</h1>
+          <h1 className="text-xl font-bold text-green-500">🏆 WhoWin</h1>
           <div className="flex items-center gap-4">
             {userProfile && (
               <div className="flex items-center gap-2">
