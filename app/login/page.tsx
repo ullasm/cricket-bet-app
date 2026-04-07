@@ -22,6 +22,7 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get('redirect') ?? '/groups';
+  const registerHref = `/register?redirect=${encodeURIComponent(redirectTo)}`;
   const { user, loading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -146,7 +147,7 @@ function LoginForm() {
 
         <p className="mt-6 text-center text-sm text-[var(--text-secondary)]">
           Don&apos;t have an account?{' '}
-          <Link href="/register" className="text-green-500 hover:text-green-400 font-medium">
+          <Link href={registerHref} className="text-green-500 hover:text-green-400 font-medium">
             Register
           </Link>
         </p>
