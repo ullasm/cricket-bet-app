@@ -24,17 +24,17 @@ export default function JoinPage() {
     if (authLoading) return;
 
     async function resolve() {
+      if (!user) {
+        setPageState('unauthenticated');
+        return;
+      }
+
       const found = await getGroupByInviteCode(inviteCode);
       if (!found) {
         setPageState('invalid');
         return;
       }
       setGroup(found);
-
-      if (!user) {
-        setPageState('unauthenticated');
-        return;
-      }
 
       const member = await isGroupMember(found.groupId, user.uid);
       setPageState(member ? 'already-member' : 'join');
