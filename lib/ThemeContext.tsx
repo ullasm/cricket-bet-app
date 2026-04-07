@@ -14,16 +14,25 @@ interface ThemeContextValue {
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>(DEFAULT_THEME);
+function getInitialTheme(): Theme {
+  if (typeof window === 'undefined') {
+    return DEFAULT_THEME;
+  }
 
-  // On mount, read from localStorage and apply
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (stored === 'dark' || stored === 'light' || stored === 'dark-compact' || stored === 'light-compact') {
+    return stored;
+  }
+
+  return DEFAULT_THEME;
+}
+
+export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const [theme, setThemeState] = useState<Theme>(getInitialTheme);
+
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY) as Theme | null;
-    const resolved = stored ?? DEFAULT_THEME;
-    setThemeState(resolved);
-    document.documentElement.setAttribute('data-theme', resolved);
-  }, []);
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
 
   function setTheme(next: Theme) {
     setThemeState(next);
