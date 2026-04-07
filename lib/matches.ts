@@ -121,6 +121,14 @@ export async function getUserBetsForGroup(
     .map((d) => ({ id: d.id, ...d.data() } as Bet));
 }
 
+export async function getBetsForGroup(groupId: string): Promise<Bet[]> {
+  const snap = await getDocs(
+    query(collection(db, 'bets'), where('groupId', '==', groupId))
+  );
+
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Bet));
+}
+
 export async function getUserBetForMatch(
   matchId: string,
   userId: string

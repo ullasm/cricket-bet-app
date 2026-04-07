@@ -10,7 +10,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { logoutUser } from '@/lib/auth';
 import { getGroupById, getUserGroupMember, getGroupMembers } from '@/lib/groups';
 import type { Group, GroupMember } from '@/lib/groups';
-import { getMatches, getUserBetsForGroup } from '@/lib/matches';
+import { getBetsForGroup, getMatches, getUserBetsForGroup } from '@/lib/matches';
 import type { Match, Bet } from '@/lib/matches';
 import { copyText, getInviteLink } from '@/lib/share';
 
@@ -57,17 +57,35 @@ const BET_STATUS_STYLES: Record<Bet['status'], string> = {
   refunded: 'bg-slate-600/40 text-[var(--text-muted)]',
 };
 
-function MatchCard({ match, groupId, myBet }: { match: Match; groupId: string; myBet?: Bet }) {
+function getPickedLabel(match: Match, pickedOutcome: Bet['pickedOutcome']) {
+  if (pickedOutcome === 'team_a') return match.teamA;
+  if (pickedOutcome === 'team_b') return match.teamB;
+  return 'Draw';
+}
+
+interface MatchCardProps {
+  match: Match;
+  groupId: string;
+  myBet?: Bet;
+  bets: Bet[];
+  memberNames: Record<string, string>;
+  currentUserId?: string;
+}
+
+function MatchCard({ match, groupId, myBet, bets, memberNames, currentUserId }: MatchCardProps) {
   const canBet =
     (match.status === 'live' || match.status === 'upcoming') && match.bettingOpen;
 
   const pickedLabel = myBet
-    ? myBet.pickedOutcome === 'team_a'
-      ? match.teamA
-      : myBet.pickedOutcome === 'team_b'
-      ? match.teamB
-      : 'Draw'
+    ? getPickedLabel(match, myBet.pickedOutcome)
     : null;
+
+  const betsByOutcome = bets.reduce<Record<string, Bet[]>>((acc, bet) => {
+    const label = getPickedLabel(match, bet.pickedOutcome);
+    acc[label] ??= [];
+    acc[label].push(bet);
+    return acc;
+  }, {});
 
   return (
     <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-[var(--card-padding)] flex flex-col gap-3">
@@ -108,6 +126,39 @@ function MatchCard({ match, groupId, myBet }: { match: Match; groupId: string; m
           </Link>
         ) : null}
       </div>
+      {bets.length > 0 && (
+        <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-input)] px-3 py-3">
+          <p className="text-xs font-semibold text-[var(--text-secondary)]">Who betted</p>
+          <div className="mt-2 space-y-2">
+            {Object.entries(betsByOutcome).map(([label, outcomeBets]) => (
+              <div key={label} className="flex flex-wrap items-start gap-2 text-xs">
+                <span className="rounded-full bg-[var(--bg-card)] px-2 py-0.5 font-medium text-[var(--text-primary)]">
+                  {label}
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {outcomeBets.map((bet) => {
+                    const isMe = bet.userId === currentUserId;
+                    const displayName = memberNames[bet.userId] ?? 'Unknown';
+                    return (
+                      <span
+                        key={bet.id}
+                        className={`rounded-full px-2 py-0.5 ${
+                          isMe
+                            ? 'bg-green-500/15 text-green-400'
+                            : 'bg-[var(--bg-card)] text-[var(--text-secondary)]'
+                        }`}
+                      >
+                        {displayName}
+                        {isMe ? ' (you)' : ''}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -133,6 +184,7 @@ function GroupDashboardContent() {
   const [members, setMembers] = useState<GroupMember[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
   const [myBets, setMyBets] = useState<Record<string, Bet>>({});
+  const [groupBets, setGroupBets] = useState<Record<string, Bet[]>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -159,10 +211,11 @@ function GroupDashboardContent() {
           return;
         }
 
-        const [membersResult, matchesResult, betsResult] = await Promise.allSettled([
+        const [membersResult, matchesResult, betsResult, groupBetsResult] = await Promise.allSettled([
           getGroupMembers(groupId),
           getMatches(groupId),
           getUserBetsForGroup(groupId, currentUser.uid),
+          getBetsForGroup(groupId),
         ]);
 
         if (cancelled) {
@@ -185,6 +238,17 @@ function GroupDashboardContent() {
           const map: Record<string, Bet> = {};
           for (const bet of betsResult.value) map[bet.matchId] = bet;
           setMyBets(map);
+        }
+
+        if (groupBetsResult.status === 'fulfilled') {
+          const grouped: Record<string, Bet[]> = {};
+          for (const bet of groupBetsResult.value) {
+            grouped[bet.matchId] ??= [];
+            grouped[bet.matchId].push(bet);
+          }
+          setGroupBets(grouped);
+        } else {
+          toast.error('Failed to load group bets');
         }
       } catch {
         if (!cancelled) {
@@ -252,6 +316,10 @@ function GroupDashboardContent() {
   const isAdmin = myMember?.role === 'admin';
   const today = new Date();
   const inviteLink = group ? getInviteLink(group.inviteCode) : '';
+  const memberNames = members.reduce<Record<string, string>>((acc, member) => {
+    acc[member.userId] = member.displayName;
+    return acc;
+  }, {});
 
   const todayMatches = matches.filter(
     (m) =>
@@ -349,7 +417,17 @@ function GroupDashboardContent() {
             <EmptyCard message="No matches today" />
           ) : (
             <div className="space-y-3">
-              {todayMatches.map((m) => <MatchCard key={m.id} match={m} groupId={groupId} myBet={myBets[m.id]} />)}
+              {todayMatches.map((m) => (
+                <MatchCard
+                  key={m.id}
+                  match={m}
+                  groupId={groupId}
+                  myBet={myBets[m.id]}
+                  bets={groupBets[m.id] ?? []}
+                  memberNames={memberNames}
+                  currentUserId={user?.uid}
+                />
+              ))}
             </div>
           )}
         </section>
@@ -361,7 +439,17 @@ function GroupDashboardContent() {
             <EmptyCard message="No upcoming matches" />
           ) : (
             <div className="space-y-3">
-              {upcomingMatches.map((m) => <MatchCard key={m.id} match={m} groupId={groupId} myBet={myBets[m.id]} />)}
+              {upcomingMatches.map((m) => (
+                <MatchCard
+                  key={m.id}
+                  match={m}
+                  groupId={groupId}
+                  myBet={myBets[m.id]}
+                  bets={groupBets[m.id] ?? []}
+                  memberNames={memberNames}
+                  currentUserId={user?.uid}
+                />
+              ))}
             </div>
           )}
         </section>
@@ -373,7 +461,17 @@ function GroupDashboardContent() {
             <EmptyCard message="No past matches" />
           ) : (
             <div className="space-y-3">
-              {pastMatches.map((m) => <MatchCard key={m.id} match={m} groupId={groupId} myBet={myBets[m.id]} />)}
+              {pastMatches.map((m) => (
+                <MatchCard
+                  key={m.id}
+                  match={m}
+                  groupId={groupId}
+                  myBet={myBets[m.id]}
+                  bets={groupBets[m.id] ?? []}
+                  memberNames={memberNames}
+                  currentUserId={user?.uid}
+                />
+              ))}
             </div>
           )}
         </section>
