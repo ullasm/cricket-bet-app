@@ -76,15 +76,17 @@ function GroupsContent() {
         {/* Header row */}
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-[var(--text-primary)]">My Groups</h2>
-          <Link
-            href="/groups/create"
-            className="flex items-center gap-1.5 bg-green-500 hover:bg-green-600 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
-          >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-            </svg>
-            Create Group
-          </Link>
+          {process.env.NEXT_PUBLIC_ALLOW_CREATE_GROUP === 'true' && (
+            <Link
+              href="/groups/create"
+              className="flex items-center gap-1.5 bg-green-500 hover:bg-green-600 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+              Create Group
+            </Link>
+          )}
         </div>
 
         {/* Loading */}
@@ -102,12 +104,16 @@ function GroupsContent() {
           <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-12 flex flex-col items-center gap-4 text-center">
             <div className="text-4xl">🏏</div>
             <p className="text-[var(--text-secondary)] text-base">You&apos;re not in any groups yet</p>
-            <Link
-              href="/groups/create"
-              className="bg-green-500 hover:bg-green-600 text-white font-semibold px-6 py-2.5 rounded-lg transition-colors"
-            >
-              Create your first group
-            </Link>
+            {process.env.NEXT_PUBLIC_ALLOW_CREATE_GROUP === 'true' ? (
+              <Link
+                href="/groups/create"
+                className="bg-green-500 hover:bg-green-600 text-white font-semibold px-6 py-2.5 rounded-lg transition-colors"
+              >
+                Create your first group
+              </Link>
+            ) : (
+              <p className="text-[var(--text-muted)] text-sm">Ask a group admin to share an invite link with you.</p>
+            )}
           </div>
         )}
 
