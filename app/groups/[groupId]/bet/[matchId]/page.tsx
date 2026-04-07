@@ -117,6 +117,7 @@ function BetContent() {
   const [match, setMatch] = useState<Match | null | undefined>(undefined);
   const [existingBet, setExistingBet] = useState<Bet | null | undefined>(undefined);
   const [member, setMember] = useState<GroupMember | null | undefined>(undefined);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Outcome | null>(null);
   const [confirming, setConfirming] = useState(false);
 
@@ -134,12 +135,10 @@ function BetContent() {
         setExistingBet(bet);
         setMember(mem);
       })
-      .catch(() => {
+      .catch((err) => {
         if (cancelled) return;
-        toast.error('Failed to load match data');
-        setMatch(null);
-        setExistingBet(null);
-        setMember(null);
+        console.error('[BetPage] Failed to load:', err);
+        setLoadError('Failed to load match data. Please try again.');
       });
     return () => { cancelled = true; };
   }, [user, matchId, groupId]);
@@ -156,6 +155,11 @@ function BetContent() {
     } finally {
       setConfirming(false);
     }
+  }
+
+  // ── load error ───────────────────────────────────────────────────────────
+  if (loadError) {
+    return <InfoScreen groupId={groupId} message={loadError} />;
   }
 
   // ── loading ──────────────────────────────────────────────────────────────

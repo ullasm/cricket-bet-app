@@ -111,30 +111,35 @@ export async function getUserBetForMatch(
   matchId: string,
   userId: string
 ): Promise<Bet | null> {
+  // Query on userId only (single-field, auto-indexed) to avoid requiring a
+  // composite index. matchId is checked in JS against the smaller result set.
   const snap = await getDocs(
     query(
       collection(db, 'bets'),
-      where('matchId', '==', matchId),
       where('userId', '==', userId)
     )
   );
   if (snap.empty) return null;
-  const d = snap.docs[0];
-  return { id: d.id, ...d.data() } as Bet;
+  const found = snap.docs.find((d) => d.data().matchId === matchId);
+  if (!found) return null;
+  return { id: found.id, ...found.data() } as Bet;
 }
 
 export async function getGroupBetsForMatch(
   matchId: string,
   groupId: string
 ): Promise<Bet[]> {
+  // Query by groupId only (single-field, auto-indexed) to avoid requiring a
+  // composite index. matchId is filtered in JS from the smaller result set.
   const snap = await getDocs(
     query(
       collection(db, 'bets'),
-      where('matchId', '==', matchId),
       where('groupId', '==', groupId)
     )
   );
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Bet));
+  return snap.docs
+    .filter((d) => d.data().matchId === matchId)
+    .map((d) => ({ id: d.id, ...d.data() } as Bet));
 }
 
 // ── settlement ────────────────────────────────────────────────────────────────

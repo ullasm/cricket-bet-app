@@ -48,9 +48,13 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // Bets — scoped to group membership
+    // Bets — users can read their own bets; group members can read all bets
+    // in their group (needed for settlement and leaderboard queries).
     match /bets/{betId} {
-      allow read: if isSignedIn() && isGroupMember(resource.data.groupId);
+      allow read: if isSignedIn() && (
+        request.auth.uid == resource.data.userId ||
+        isGroupMember(resource.data.groupId)
+      );
       allow create: if isSignedIn()
         && request.auth.uid == request.resource.data.userId
         && isGroupMember(request.resource.data.groupId);
