@@ -1,0 +1,61 @@
+// IMPORTANT: After updating these rules, go to Firebase Console → Firestore → Rules and paste these rules there manually, then click Publish.
+// The collectionGroup query on 'members' subcollection also requires a Firestore index.
+// When the app first runs getUserGroups(), Firestore will show an error with a direct link to create the required index. Click that link.
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isGroupMember(groupId) {
+      return isSignedIn() && exists(/databases/$(database)/documents/groups/$(groupId)/members/$(request.auth.uid));
+    }
+
+    function isGroupAdmin(groupId) {
+      return isSignedIn() && get(/databases/$(database)/documents/groups/$(groupId)/members/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Users collection — anyone signed in can read, users can only write their own doc
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow write: if request.auth.uid == userId;
+    }
+
+    // Groups collection
+    match /groups/{groupId} {
+      allow read: if isGroupMember(groupId);
+      allow create: if isSignedIn();
+      allow update: if isGroupAdmin(groupId);
+      allow delete: if false;
+
+      // Members subcollection
+      match /members/{memberId} {
+        allow read: if isGroupMember(groupId);
+        allow create: if isSignedIn() && request.auth.uid == memberId;
+        allow update: if isGroupAdmin(groupId);
+        allow delete: if isGroupAdmin(groupId);
+      }
+    }
+
+    // Matches — scoped to group membership
+    match /matches/{matchId} {
+      allow read: if isSignedIn() && isGroupMember(resource.data.groupId);
+      allow create: if isGroupAdmin(request.resource.data.groupId);
+      allow update: if isGroupAdmin(resource.data.groupId);
+      allow delete: if false;
+    }
+
+    // Bets — scoped to group membership
+    match /bets/{betId} {
+      allow read: if isSignedIn() && isGroupMember(resource.data.groupId);
+      allow create: if isSignedIn()
+        && request.auth.uid == request.resource.data.userId
+        && isGroupMember(request.resource.data.groupId);
+      allow update: if isGroupAdmin(resource.data.groupId);
+      allow delete: if false;
+    }
+  }
+}

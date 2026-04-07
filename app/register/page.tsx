@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { registerUser, signInWithGoogle } from '@/lib/auth';
@@ -9,6 +9,8 @@ import { useAuth } from '@/lib/AuthContext';
 
 export default function RegisterPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get('redirect') ?? '/groups';
   const { user, loading } = useAuth();
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
@@ -19,9 +21,9 @@ export default function RegisterPage() {
 
   useEffect(() => {
     if (!loading && user) {
-      router.replace('/dashboard');
+      router.replace(redirectTo);
     }
-  }, [user, loading, router]);
+  }, [user, loading, router, redirectTo]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -40,7 +42,7 @@ export default function RegisterPage() {
     try {
       await registerUser(email, password, displayName);
       toast.success('Account created! Welcome to WhoWin!');
-      router.replace('/dashboard');
+      router.replace(redirectTo);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to create account');
     } finally {
@@ -53,7 +55,7 @@ export default function RegisterPage() {
     try {
       await signInWithGoogle();
       toast.success('Welcome!');
-      router.replace('/dashboard');
+      router.replace(redirectTo);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Google sign-in failed');
     } finally {

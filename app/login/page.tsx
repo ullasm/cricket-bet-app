@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { loginUser, signInWithGoogle } from '@/lib/auth';
@@ -9,6 +9,8 @@ import { useAuth } from '@/lib/AuthContext';
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get('redirect') ?? '/groups';
   const { user, loading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -17,9 +19,9 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!loading && user) {
-      router.replace('/dashboard');
+      router.replace(redirectTo);
     }
-  }, [user, loading, router]);
+  }, [user, loading, router, redirectTo]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -27,7 +29,7 @@ export default function LoginPage() {
     try {
       await loginUser(email, password);
       toast.success('Welcome back!');
-      router.replace('/dashboard');
+      router.replace(redirectTo);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to sign in');
     } finally {
@@ -40,7 +42,7 @@ export default function LoginPage() {
     try {
       await signInWithGoogle();
       toast.success('Welcome!');
-      router.replace('/dashboard');
+      router.replace(redirectTo);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Google sign-in failed');
     } finally {
