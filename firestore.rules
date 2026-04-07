@@ -55,7 +55,7 @@ service cloud.firestore {
       allow read: if isSignedIn() && isGroupMember(resource.data.groupId);
       allow create: if isGroupAdmin(request.resource.data.groupId);
       allow update: if isGroupAdmin(resource.data.groupId);
-      allow delete: if false;
+      allow delete: if isGroupAdmin(resource.data.groupId);
     }
 
     // Bets — users can read their own bets; group members can read all bets

@@ -16,6 +16,9 @@ export async function getCricketMatches(): Promise<CricMatch[]> {
   const res = await fetch('/api/cricket');
   if (!res.ok) return [];
   const json = await res.json();
+  if (json.debug) {
+    console.log('[CricAPI] debug:', json.debug);
+  }
   return json.matches ?? [];
 }
 

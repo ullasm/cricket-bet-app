@@ -1,5 +1,3 @@
-export const revalidate = 60; // cache for 1 minute
-
 export interface CricMatch {
   id: string;
   name: string;
@@ -46,35 +44,39 @@ function normalise(raw: any, isLive: boolean): CricMatch {
 
 export async function GET() {
   if (!API_KEY) {
-    return Response.json({ matches: [] });
+    return Response.json({ matches: [], debug: { currentMatches: 0, matches0: 0, matches25: 0, matches50: 0, total: 0 } });
   }
 
   try {
-    const [liveRes, upcomingRes, upcomingRes2] = await Promise.all([
-      fetch(`https://api.cricapi.com/v1/currentMatches?apikey=${API_KEY}&offset=0`, {
-        next: { revalidate: 60 },
-      }),
-      fetch(`https://api.cricapi.com/v1/matches?apikey=${API_KEY}&offset=0`, {
-        next: { revalidate: 60 },
-      }),
-      fetch(`https://api.cricapi.com/v1/matches?apikey=${API_KEY}&offset=25`, {
-        next: { revalidate: 60 },
-      }),
+    const [liveRes, upcomingRes, upcomingRes2, upcomingRes3] = await Promise.all([
+      fetch(`https://api.cricapi.com/v1/currentMatches?apikey=${API_KEY}&offset=0`, { cache: 'no-store' }),
+      fetch(`https://api.cricapi.com/v1/matches?apikey=${API_KEY}&offset=0`, { cache: 'no-store' }),
+      fetch(`https://api.cricapi.com/v1/matches?apikey=${API_KEY}&offset=25`, { cache: 'no-store' }),
+      fetch(`https://api.cricapi.com/v1/matches?apikey=${API_KEY}&offset=50`, { cache: 'no-store' }),
     ]);
 
-    const [liveJson, upcomingJson, upcomingJson2] = await Promise.all([
+    const [liveJson, upcomingJson, upcomingJson2, upcomingJson3] = await Promise.all([
       liveRes.ok ? liveRes.json() : Promise.resolve({ data: [] }),
       upcomingRes.ok ? upcomingRes.json() : Promise.resolve({ data: [] }),
       upcomingRes2.ok ? upcomingRes2.json() : Promise.resolve({ data: [] }),
+      upcomingRes3.ok ? upcomingRes3.json() : Promise.resolve({ data: [] }),
     ]);
 
-    const liveMatches: CricMatch[] = (liveJson.data ?? []).map((m: unknown) => normalise(m, true));
-    const upcomingRaw = [
-      ...(upcomingJson.data ?? []),
-      ...(upcomingJson2.data ?? []),
-    ].map((m: unknown) => normalise(m, false));
+    const rawCurrent: unknown[] = liveJson.data ?? [];
+    const rawMatches0: unknown[] = upcomingJson.data ?? [];
+    const rawMatches25: unknown[] = upcomingJson2.data ?? [];
+    const rawMatches50: unknown[] = upcomingJson3.data ?? [];
 
-    // De-duplicate across live + both upcoming pages
+    console.log('[CricAPI] raw counts — currentMatches:', rawCurrent.length, '| matches@0:', rawMatches0.length, '| matches@25:', rawMatches25.length, '| matches@50:', rawMatches50.length);
+
+    const liveMatches: CricMatch[] = rawCurrent.map((m) => normalise(m, true));
+    const upcomingRaw: CricMatch[] = [
+      ...rawMatches0,
+      ...rawMatches25,
+      ...rawMatches50,
+    ].map((m) => normalise(m, false));
+
+    // De-duplicate: live takes precedence, then deduplicate upcoming pages
     const seen = new Set<string>(liveMatches.map((m) => m.id));
     const dedupedUpcoming = upcomingRaw.filter((m) => {
       if (seen.has(m.id)) return false;
@@ -82,14 +84,8 @@ export async function GET() {
       return true;
     });
 
-    // Filter out matches more than 24 hours in the past
-    const cutoff = Date.now() - 24 * 60 * 60 * 1000;
-    const all = [...liveMatches, ...dedupedUpcoming].filter((m) => {
-      const t = new Date(m.dateTimeLocal || m.date).getTime();
-      return isNaN(t) || t >= cutoff;
-    });
-
-    // Sort by date ascending so upcoming matches appear first
+    // Sort by date ascending
+    const all = [...liveMatches, ...dedupedUpcoming];
     all.sort((a, b) => {
       const da = new Date(a.dateTimeLocal || a.date).getTime();
       const db = new Date(b.dateTimeLocal || b.date).getTime();
@@ -99,8 +95,19 @@ export async function GET() {
       return da - db;
     });
 
-    return Response.json({ matches: all });
-  } catch {
-    return Response.json({ matches: [] });
+    const debug = {
+      currentMatches: rawCurrent.length,
+      matches0: rawMatches0.length,
+      matches25: rawMatches25.length,
+      matches50: rawMatches50.length,
+      total: all.length,
+    };
+
+    console.log('[CricAPI] after dedup & sort — total:', all.length);
+
+    return Response.json({ matches: all, debug });
+  } catch (err) {
+    console.error('[CricAPI] fetch error:', err);
+    return Response.json({ matches: [], debug: { currentMatches: 0, matches0: 0, matches25: 0, matches50: 0, total: 0 } });
   }
 }

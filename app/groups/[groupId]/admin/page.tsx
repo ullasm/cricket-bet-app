@@ -12,7 +12,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { logoutUser } from '@/lib/auth';
 import { getGroupById, getUserGroupMember } from '@/lib/groups';
 import type { Group } from '@/lib/groups';
-import { getMatches, createMatch, settleMatch } from '@/lib/matches';
+import { getMatches, createMatch, settleMatch, updateMatch, deleteMatch } from '@/lib/matches';
 import type { Match } from '@/lib/matches';
 import { getCricketMatches } from '@/lib/cricapi';
 import type { CricMatch } from '@/lib/cricapi';
@@ -35,6 +35,20 @@ function formatMatchDate(ts: Match['matchDate']) {
 function formatCricDate(dateStr: string): string {
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return dateStr;
+
+  // CricAPI sometimes returns date-only strings (e.g. "2026-04-07") with no
+  // real time. JS parses these as UTC midnight, which in IST shows as 5:30 AM
+  // for every match. Detect this by checking if the string lacks a time part.
+  const hasTime = /T\d|^\d{4}-\d{2}-\d{2} \d/.test(dateStr);
+
+  if (!hasTime) {
+    return d.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  }
+
   return d.toLocaleString('en-US', {
     month: 'short',
     day: 'numeric',
@@ -104,6 +118,21 @@ function GroupAdminContent() {
   const [selectedResult, setSelectedResult] = useState<Record<string, ResultOption>>({});
   const [declaring, setDeclaring] = useState<Record<string, boolean>>({});
   const [togglingBet, setTogglingBet] = useState<Record<string, boolean>>({});
+
+  // edit state
+  const [editingMatch, setEditingMatch] = useState<Match | null>(null);
+  const [editTeamA, setEditTeamA] = useState('');
+  const [editTeamB, setEditTeamB] = useState('');
+  const [editFormat, setEditFormat] = useState<Match['format']>('T20');
+  const [editMatchDate, setEditMatchDate] = useState('');
+  const [editDrawAllowed, setEditDrawAllowed] = useState(false);
+  const [editNoDrawPolicy, setEditNoDrawPolicy] = useState<Match['noDrawPolicy']>('refund');
+  const [editBettingOpen, setEditBettingOpen] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  // delete state
+  const [confirmDelete, setConfirmDelete] = useState<Match | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // cricapi state
   const [cricMatches, setCricMatches] = useState<CricMatch[]>([]);
@@ -260,6 +289,62 @@ function GroupAdminContent() {
     }
   }
 
+  function openEdit(match: Match) {
+    setEditingMatch(match);
+    setEditTeamA(match.teamA);
+    setEditTeamB(match.teamB);
+    setEditFormat(match.format);
+    setEditDrawAllowed(match.drawAllowed);
+    setEditNoDrawPolicy(match.noDrawPolicy);
+    setEditBettingOpen(match.bettingOpen);
+    // Convert Firestore Timestamp to datetime-local string (local time)
+    const d = match.matchDate.toDate();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    setEditMatchDate(
+      `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+    );
+  }
+
+  async function handleSaveEdit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editingMatch || !editMatchDate) return;
+    setSaving(true);
+    try {
+      const drawAllowed = editFormat === 'Test' ? true : editDrawAllowed;
+      await updateMatch(editingMatch.id, {
+        teamA: editTeamA.trim(),
+        teamB: editTeamB.trim(),
+        format: editFormat,
+        drawAllowed,
+        noDrawPolicy: drawAllowed ? editNoDrawPolicy : 'refund',
+        matchDate: Timestamp.fromDate(new Date(editMatchDate)),
+        bettingOpen: editBettingOpen,
+      });
+      toast.success('Match updated!');
+      setEditingMatch(null);
+      await refreshMatches();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to update match');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDeleteConfirmed() {
+    if (!confirmDelete) return;
+    setDeleting(true);
+    try {
+      await deleteMatch(confirmDelete.id);
+      toast.success('Match deleted');
+      setConfirmDelete(null);
+      await refreshMatches();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to delete match');
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   async function handleDeclareResult(match: Match) {
     const result = selectedResult[match.id];
     if (!result) return;
@@ -324,6 +409,91 @@ function GroupAdminContent() {
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
+
+      {/* ── Edit modal ── */}
+      {editingMatch && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+          <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-6 max-w-lg w-full space-y-4">
+            <h3 className="font-semibold text-[var(--text-primary)]">Edit Match</h3>
+            <form onSubmit={handleSaveEdit} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Team A</label>
+                  <input type="text" required value={editTeamA} onChange={(e) => setEditTeamA(e.target.value)} className={INPUT_CLASS} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Team B</label>
+                  <input type="text" required value={editTeamB} onChange={(e) => setEditTeamB(e.target.value)} className={INPUT_CLASS} />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Format</label>
+                  <select value={editFormat} onChange={(e) => { const f = e.target.value as Match['format']; setEditFormat(f); if (f === 'Test') setEditDrawAllowed(true); else setEditDrawAllowed(false); }} className={INPUT_CLASS}>
+                    <option value="T20">T20</option>
+                    <option value="ODI">ODI</option>
+                    <option value="Test">Test</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Match Date &amp; Time</label>
+                  <input type="datetime-local" required value={editMatchDate} onChange={(e) => setEditMatchDate(e.target.value)} className={INPUT_CLASS} />
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-6">
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input type="checkbox" checked={editDrawAllowed} disabled={editFormat === 'Test'} onChange={(e) => setEditDrawAllowed(e.target.checked)} className="w-4 h-4 accent-green-500" />
+                  <span className="text-sm text-[var(--text-secondary)]">Allow Draw{editFormat === 'Test' && <span className="ml-1 text-xs text-[var(--text-muted)]">(auto for Test)</span>}</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input type="checkbox" checked={editBettingOpen} onChange={(e) => setEditBettingOpen(e.target.checked)} className="w-4 h-4 accent-green-500" />
+                  <span className="text-sm text-[var(--text-secondary)]">Betting Open</span>
+                </label>
+              </div>
+              {editDrawAllowed && (
+                <div className="max-w-xs">
+                  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">No Draw Policy</label>
+                  <select value={editNoDrawPolicy} onChange={(e) => setEditNoDrawPolicy(e.target.value as Match['noDrawPolicy'])} className={INPUT_CLASS}>
+                    <option value="refund">Refund all</option>
+                    <option value="rollover">Rollover</option>
+                  </select>
+                </div>
+              )}
+              <div className="flex gap-3 pt-1">
+                <button type="submit" disabled={saving} className="flex-1 rounded-lg bg-green-500 hover:bg-green-600 disabled:opacity-60 text-white text-sm font-semibold py-2.5 transition-colors">
+                  {saving ? 'Saving…' : 'Save Changes'}
+                </button>
+                <button type="button" onClick={() => setEditingMatch(null)} className="flex-1 rounded-lg border border-[var(--border)] bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] text-sm font-medium py-2.5 transition-colors">
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── Delete confirmation modal ── */}
+      {confirmDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+          <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-6 max-w-sm w-full space-y-4">
+            <h3 className="font-semibold text-[var(--text-primary)]">Delete match?</h3>
+            <p className="text-sm text-[var(--text-secondary)]">
+              Are you sure you want to delete{' '}
+              <span className="font-medium text-[var(--text-primary)]">{confirmDelete.teamA} vs {confirmDelete.teamB}</span>?
+              This cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button onClick={() => setConfirmDelete(null)} className="flex-1 rounded-lg border border-[var(--border)] bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] text-sm font-medium py-2 transition-colors">
+                Cancel
+              </button>
+              <button onClick={handleDeleteConfirmed} disabled={deleting} className="flex-1 rounded-lg bg-red-500 hover:bg-red-600 disabled:opacity-60 text-white text-sm font-semibold py-2 transition-colors">
+                {deleting ? 'Deleting…' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Navbar */}
       <header className="bg-[var(--bg-card)] border-b border-[var(--border)] px-6 py-4">
         <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
@@ -557,7 +727,23 @@ function GroupAdminContent() {
                           {match.format}
                         </span>
                       </div>
-                      <StatusBadge status={match.status} />
+                      <div className="flex items-center gap-2">
+                        <StatusBadge status={match.status} />
+                        {canDeclare && (
+                          <button
+                            onClick={() => openEdit(match)}
+                            className="text-xs font-medium px-2.5 py-1 rounded-lg bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border)] transition-colors"
+                          >
+                            Edit
+                          </button>
+                        )}
+                        <button
+                          onClick={() => setConfirmDelete(match)}
+                          className="text-xs font-medium px-2.5 py-1 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-colors"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </div>
 
                     <p className="text-xs text-[var(--text-muted)]">{formatMatchDate(match.matchDate)}</p>

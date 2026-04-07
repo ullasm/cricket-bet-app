@@ -5,6 +5,7 @@ import {
   getDoc,
   getDocs,
   updateDoc,
+  deleteDoc,
   query,
   where,
   orderBy,
@@ -83,6 +84,17 @@ export async function createMatch(
     groupId,
   });
   return ref.id;
+}
+
+export async function updateMatch(
+  matchId: string,
+  fields: Partial<Pick<Match, 'teamA' | 'teamB' | 'format' | 'drawAllowed' | 'noDrawPolicy' | 'matchDate' | 'bettingOpen'>>
+): Promise<void> {
+  await updateDoc(doc(db, 'matches', matchId), fields as Record<string, unknown>);
+}
+
+export async function deleteMatch(matchId: string): Promise<void> {
+  await deleteDoc(doc(db, 'matches', matchId));
 }
 
 // ── bet functions ─────────────────────────────────────────────────────────────
