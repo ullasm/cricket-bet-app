@@ -1,5 +1,6 @@
 import {
   collection,
+  collectionGroup,
   doc,
   addDoc,
   getDoc,
@@ -101,9 +102,17 @@ export async function createGroup(
 
 export async function getUserGroups(userId: string): Promise<Group[]> {
   const userSnap = await getDoc(doc(db, 'users', userId));
-  if (!userSnap.exists()) return [];
+  const userGroupIds: string[] = userSnap.exists() ? (userSnap.data().groupIds ?? []) : [];
 
-  const groupIds: string[] = userSnap.data().groupIds ?? [];
+  const memberSnap = await getDocs(
+    query(collectionGroup(db, 'members'), where('userId', '==', userId))
+  );
+
+  const membershipGroupIds = memberSnap.docs
+    .map((memberDoc) => memberDoc.ref.parent.parent?.id)
+    .filter((groupId): groupId is string => Boolean(groupId));
+
+  const groupIds = Array.from(new Set([...userGroupIds, ...membershipGroupIds]));
   if (groupIds.length === 0) return [];
 
   const groups = await Promise.all(
@@ -162,7 +171,18 @@ export async function joinGroup(
     joinedAt: serverTimestamp(),
   });
 
-  await updateDoc(doc(db, 'users', userId), { groupIds: arrayUnion(groupId) });
+  await setDoc(
+    doc(db, 'users', userId),
+    {
+      uid: userId,
+      displayName,
+      avatarColor,
+      role: 'member',
+      totalPoints: 0,
+      groupIds: arrayUnion(groupId),
+    },
+    { merge: true }
+  );
 }
 
 export async function isGroupMember(groupId: string, userId: string): Promise<boolean> {
