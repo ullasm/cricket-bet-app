@@ -13,7 +13,6 @@ import {
   orderBy,
   serverTimestamp,
   arrayUnion,
-  arrayRemove,
 } from 'firebase/firestore';
 import type { Timestamp } from 'firebase/firestore';
 import { db } from './firebase';
@@ -101,29 +100,35 @@ export async function createGroup(
 }
 
 export async function getUserGroups(userId: string): Promise<Group[]> {
-  const userSnap = await getDoc(doc(db, 'users', userId));
-  const userGroupIds: string[] = userSnap.exists() ? (userSnap.data().groupIds ?? []) : [];
+  let groupIds: string[] = [];
 
-  const memberSnap = await getDocs(
-    query(collectionGroup(db, 'members'), where('userId', '==', userId))
-  );
+  try {
+    const memberSnap = await getDocs(
+      query(collectionGroup(db, 'members'), where('userId', '==', userId))
+    );
 
-  const membershipGroupIds = memberSnap.docs
-    .map((memberDoc) => memberDoc.ref.parent.parent?.id)
-    .filter((groupId): groupId is string => Boolean(groupId));
+    groupIds = memberSnap.docs
+      .map((memberDoc) => memberDoc.ref.parent.parent?.id)
+      .filter((groupId): groupId is string => Boolean(groupId));
+  } catch {
+    const userSnap = await getDoc(doc(db, 'users', userId));
+    groupIds = userSnap.exists() ? (userSnap.data().groupIds ?? []) : [];
+  }
 
-  const groupIds = Array.from(new Set([...userGroupIds, ...membershipGroupIds]));
   if (groupIds.length === 0) return [];
 
-  const groups = await Promise.all(
-    groupIds.map(async (groupId) => {
+  const groups = await Promise.allSettled(
+    Array.from(new Set(groupIds)).map(async (groupId) => {
       const snap = await getDoc(doc(db, 'groups', groupId));
       if (!snap.exists()) return null;
       return { groupId: snap.id, ...snap.data() } as Group;
     })
   );
 
-  return groups.filter((g): g is Group => g !== null);
+  return groups
+    .filter((result): result is PromiseFulfilledResult<Group | null> => result.status === 'fulfilled')
+    .map((result) => result.value)
+    .filter((group): group is Group => group !== null);
 }
 
 export async function getGroupById(groupId: string): Promise<Group | null> {
@@ -206,7 +211,6 @@ export async function demoteMember(groupId: string, userId: string): Promise<voi
 
 export async function removeMember(groupId: string, userId: string): Promise<void> {
   await deleteDoc(doc(db, 'groups', groupId, 'members', userId));
-  await updateDoc(doc(db, 'users', userId), { groupIds: arrayRemove(groupId) });
 }
 
 export async function regenerateInviteCode(groupId: string): Promise<string> {
