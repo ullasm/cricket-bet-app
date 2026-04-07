@@ -34,6 +34,7 @@ export async function registerUser(
     totalPoints: 0,
     role: 'member',
     avatarColor: AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)],
+    groupIds: [],
     createdAt: serverTimestamp(),
   });
 
@@ -67,6 +68,7 @@ export async function signInWithGoogle() {
       totalPoints: 0,
       role: 'member',
       avatarColor: AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)],
+      groupIds: [],
       createdAt: serverTimestamp(),
     });
   }

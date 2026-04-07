@@ -5,7 +5,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 export type Theme = 'dark' | 'light' | 'dark-compact' | 'light-compact';
 
 const STORAGE_KEY = 'whowins-theme';
-const DEFAULT_THEME: Theme = 'dark';
+const DEFAULT_THEME: Theme = 'light-compact';
 
 interface ThemeContextValue {
   theme: Theme;

@@ -1,6 +1,5 @@
 import {
   collection,
-  collectionGroup,
   doc,
   addDoc,
   getDoc,
@@ -12,6 +11,8 @@ import {
   where,
   orderBy,
   serverTimestamp,
+  arrayUnion,
+  arrayRemove,
 } from 'firebase/firestore';
 import type { Timestamp } from 'firebase/firestore';
 import { db } from './firebase';
@@ -70,22 +71,25 @@ export async function createGroup(
     joinedAt: serverTimestamp(),
   });
 
+  await updateDoc(doc(db, 'users', userId), {
+    groupIds: arrayUnion(groupRef.id),
+  });
+
   return groupRef.id;
 }
 
 export async function getUserGroups(userId: string): Promise<Group[]> {
-  const memberSnap = await getDocs(
-    query(collectionGroup(db, 'members'), where('userId', '==', userId))
-  );
+  const userSnap = await getDoc(doc(db, 'users', userId));
+  if (!userSnap.exists()) return [];
+
+  const groupIds: string[] = userSnap.data().groupIds ?? [];
+  if (groupIds.length === 0) return [];
 
   const groups = await Promise.all(
-    memberSnap.docs.map(async (memberDoc) => {
-      // parent of member doc is the group doc
-      const groupRef = memberDoc.ref.parent.parent;
-      if (!groupRef) return null;
-      const groupSnap = await getDoc(groupRef);
-      if (!groupSnap.exists()) return null;
-      return { groupId: groupSnap.id, ...groupSnap.data() } as Group;
+    groupIds.map(async (groupId) => {
+      const snap = await getDoc(doc(db, 'groups', groupId));
+      if (!snap.exists()) return null;
+      return { groupId: snap.id, ...snap.data() } as Group;
     })
   );
 
@@ -135,6 +139,8 @@ export async function joinGroup(
     totalPoints: 0,
     joinedAt: serverTimestamp(),
   });
+
+  await updateDoc(doc(db, 'users', userId), { groupIds: arrayUnion(groupId) });
 }
 
 export async function isGroupMember(groupId: string, userId: string): Promise<boolean> {
@@ -158,6 +164,7 @@ export async function demoteMember(groupId: string, userId: string): Promise<voi
 
 export async function removeMember(groupId: string, userId: string): Promise<void> {
   await deleteDoc(doc(db, 'groups', groupId, 'members', userId));
+  await updateDoc(doc(db, 'users', userId), { groupIds: arrayRemove(groupId) });
 }
 
 export async function regenerateInviteCode(groupId: string): Promise<string> {
