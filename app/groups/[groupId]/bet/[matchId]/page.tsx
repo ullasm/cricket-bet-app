@@ -122,22 +122,26 @@ function BetContent() {
 
   useEffect(() => {
     if (!user) return;
+    let cancelled = false;
     Promise.all([
       getMatchById(matchId),
       getUserBetForMatch(matchId, user.uid),
       getUserGroupMember(groupId, user.uid),
     ])
       .then(([m, bet, mem]) => {
+        if (cancelled) return;
         setMatch(m);
         setExistingBet(bet);
         setMember(mem);
       })
       .catch(() => {
+        if (cancelled) return;
         toast.error('Failed to load match data');
         setMatch(null);
         setExistingBet(null);
         setMember(null);
       });
+    return () => { cancelled = true; };
   }, [user, matchId, groupId]);
 
   async function handleConfirm() {

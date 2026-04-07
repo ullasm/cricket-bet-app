@@ -226,7 +226,10 @@ function GroupDashboardContent() {
       !isSameDay(m.matchDate.toDate(), today)
   );
   const pastMatches = matches.filter(
-    (m) => m.status === 'completed' || m.status === 'abandoned'
+    (m) =>
+      m.status === 'completed' ||
+      m.status === 'abandoned' ||
+      (m.status === 'upcoming' && m.matchDate.toDate() < today && !isSameDay(m.matchDate.toDate(), today))
   );
 
   return (

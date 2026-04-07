@@ -30,6 +30,8 @@ function ManageContent() {
   const [isAdmin, setIsAdmin] = useState<boolean | undefined>(undefined);
   const [group, setGroup] = useState<Group | null>(null);
   const [members, setMembers] = useState<GroupMember[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [retryKey, setRetryKey] = useState(0);
 
   // group name edit
   const [editing, setEditing] = useState(false);
@@ -46,23 +48,30 @@ function ManageContent() {
 
   useEffect(() => {
     if (!user) return;
+    let cancelled = false;
     Promise.all([
       getUserGroupMember(groupId, user.uid),
       getGroupById(groupId),
       getGroupMembers(groupId),
     ])
       .then(([member, g, mems]) => {
+        if (cancelled) return;
         setIsAdmin(member?.role === 'admin');
         setGroup(g);
         setInviteCode(g?.inviteCode ?? '');
         setNameInput(g?.name ?? '');
         setMembers(mems);
       })
-      .catch(() => {
-        toast.error('Failed to load group');
-        setIsAdmin(false);
+      .catch((err) => {
+        if (cancelled) return;
+        if ((err as { code?: string })?.code === 'permission-denied') {
+          setIsAdmin(false);
+        } else {
+          setLoadError('Failed to load page. Please try again.');
+        }
       });
-  }, [user, groupId]);
+    return () => { cancelled = true; };
+  }, [user, groupId, retryKey]);
 
   async function handleLogout() {
     try {
@@ -163,6 +172,23 @@ function ManageContent() {
     } finally {
       setMemberLoading(m.userId, false);
     }
+  }
+
+  // ── load error ───────────────────────────────────────────────────────────
+  if (loadError) {
+    return (
+      <div className="min-h-screen bg-[var(--bg-primary)] flex flex-col items-center justify-center gap-4 px-4">
+        <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-8 max-w-sm w-full text-center space-y-4">
+          <p className="text-red-400 font-semibold">{loadError}</p>
+          <button
+            onClick={() => { setLoadError(null); setRetryKey((k) => k + 1); }}
+            className="inline-block bg-green-500 hover:bg-green-600 text-white font-semibold px-5 py-2 rounded-lg transition-colors text-sm"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
   }
 
   // ── loading ──────────────────────────────────────────────────────────────

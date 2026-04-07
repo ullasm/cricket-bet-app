@@ -14,6 +14,8 @@ import { getGroupById, getUserGroupMember } from '@/lib/groups';
 import type { Group } from '@/lib/groups';
 import { getMatches, createMatch, settleMatch } from '@/lib/matches';
 import type { Match } from '@/lib/matches';
+import { getCricketMatches } from '@/lib/cricapi';
+import type { CricMatch } from '@/lib/cricapi';
 
 type ResultOption = 'team_a' | 'team_b' | 'draw' | 'abandoned';
 
@@ -28,6 +30,26 @@ function formatMatchDate(ts: Match['matchDate']) {
     hour: 'numeric',
     minute: '2-digit',
   });
+}
+
+function formatCricDate(dateStr: string): string {
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return dateStr;
+  return d.toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
+function parseTeams(matchName: string): { teamA: string; teamB: string } {
+  const parts = matchName.split(/ vs | v /i);
+  if (parts.length >= 2) {
+    return { teamA: parts[0].trim(), teamB: parts[1].trim() };
+  }
+  return { teamA: matchName.trim(), teamB: 'TBD' };
 }
 
 function StatusBadge({ status }: { status: Match['status'] }) {
@@ -55,6 +77,8 @@ function GroupAdminContent() {
   // access state
   const [isAdmin, setIsAdmin] = useState<boolean | undefined>(undefined);
   const [group, setGroup] = useState<Group | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [retryKey, setRetryKey] = useState(0);
 
   // form state
   const [teamA, setTeamA] = useState('');
@@ -72,21 +96,34 @@ function GroupAdminContent() {
   const [declaring, setDeclaring] = useState<Record<string, boolean>>({});
   const [togglingBet, setTogglingBet] = useState<Record<string, boolean>>({});
 
+  // cricapi state
+  const [cricMatches, setCricMatches] = useState<CricMatch[]>([]);
+  const [cricLoading, setCricLoading] = useState(false);
+  const [cricFetched, setCricFetched] = useState(false);
+  const [addedIds, setAddedIds] = useState<Record<string, 'adding' | 'added'>>({});
+
   useEffect(() => {
     if (!user) return;
+    let cancelled = false;
     Promise.all([
       getUserGroupMember(groupId, user.uid),
       getGroupById(groupId),
       getMatches(groupId),
     ]).then(([member, g, mats]) => {
+      if (cancelled) return;
       setIsAdmin(member?.role === 'admin');
       setGroup(g);
       setMatches(mats);
-    }).catch(() => {
-      toast.error('Failed to load admin data');
-      setIsAdmin(false);
+    }).catch((err) => {
+      if (cancelled) return;
+      if ((err as { code?: string })?.code === 'permission-denied') {
+        setIsAdmin(false);
+      } else {
+        setLoadError('Failed to load page. Please try again.');
+      }
     });
-  }, [user, groupId]);
+    return () => { cancelled = true; };
+  }, [user, groupId, retryKey]);
 
   useEffect(() => {
     if (format === 'Test') setDrawAllowed(true);
@@ -105,6 +142,52 @@ function GroupAdminContent() {
   async function refreshMatches() {
     const mats = await getMatches(groupId);
     setMatches(mats);
+  }
+
+  async function handleFetchCricMatches() {
+    setCricLoading(true);
+    setCricFetched(true);
+    try {
+      const mats = await getCricketMatches();
+      setCricMatches(mats);
+    } catch {
+      setCricMatches([]);
+    } finally {
+      setCricLoading(false);
+    }
+  }
+
+  async function handleAddFromCricApi(cm: CricMatch) {
+    const { teamA, teamB } = parseTeams(cm.name);
+    const rawType = cm.matchType.toLowerCase();
+    const format: Match['format'] =
+      rawType === 'odi' ? 'ODI' : rawType === 'test' ? 'Test' : 'T20';
+    const drawAllowed = format === 'Test';
+    const matchDate = Timestamp.fromDate(new Date(cm.dateTimeLocal || cm.date));
+    const status: Match['status'] = cm.isLive ? 'live' : 'upcoming';
+
+    setAddedIds((prev) => ({ ...prev, [cm.id]: 'adding' }));
+    try {
+      await createMatch(groupId, {
+        teamA,
+        teamB,
+        format,
+        drawAllowed,
+        noDrawPolicy: 'refund',
+        matchDate,
+        status,
+        result: 'pending',
+        bettingOpen: true,
+        bettingClosedAt: null,
+        cricApiMatchId: cm.id,
+      });
+      toast.success('Match added!');
+      setAddedIds((prev) => ({ ...prev, [cm.id]: 'added' }));
+      await refreshMatches();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to add match');
+      setAddedIds((prev) => { const next = { ...prev }; delete next[cm.id]; return next; });
+    }
   }
 
   async function handleCreateMatch(e: React.FormEvent) {
@@ -171,6 +254,23 @@ function GroupAdminContent() {
     } finally {
       setDeclaring((p) => ({ ...p, [match.id]: false }));
     }
+  }
+
+  // ── load error ───────────────────────────────────────────────────────────
+  if (loadError) {
+    return (
+      <div className="min-h-screen bg-[var(--bg-primary)] flex flex-col items-center justify-center gap-4 px-4">
+        <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-8 max-w-sm w-full text-center space-y-4">
+          <p className="text-red-400 font-semibold">{loadError}</p>
+          <button
+            onClick={() => { setLoadError(null); setRetryKey((k) => k + 1); }}
+            className="inline-block bg-green-500 hover:bg-green-600 text-white font-semibold px-5 py-2 rounded-lg transition-colors text-sm"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
   }
 
   // ── loading ──────────────────────────────────────────────────────────────
@@ -245,6 +345,90 @@ function GroupAdminContent() {
       </header>
 
       <main className="max-w-4xl mx-auto px-6 py-8 space-y-10">
+        {/* ── CricAPI Import ── */}
+        <section>
+          <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Import Matches from CricAPI</h2>
+          <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-[var(--card-padding)] space-y-4">
+            <button
+              onClick={handleFetchCricMatches}
+              disabled={cricLoading}
+              className="flex items-center gap-2 rounded-lg bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] border border-[var(--border)] text-[var(--text-primary)] font-semibold text-sm px-4 py-2.5 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {cricLoading ? (
+                <>
+                  <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                  </svg>
+                  Fetching…
+                </>
+              ) : (
+                <>
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Fetch Live &amp; Upcoming Matches
+                </>
+              )}
+            </button>
+
+            {cricFetched && !cricLoading && (
+              cricMatches.length === 0 ? (
+                <p className="text-sm text-[var(--text-muted)] text-center py-2">
+                  No matches available from CricAPI right now
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {cricMatches.map((cm) => {
+                    const state = addedIds[cm.id];
+                    const rawType = cm.matchType.toLowerCase();
+                    const typeLabel = rawType === 'odi' ? 'ODI' : rawType === 'test' ? 'Test' : 'T20';
+                    return (
+                      <div
+                        key={cm.id}
+                        className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-[var(--bg-input)] border border-[var(--border)] px-4 py-3"
+                      >
+                        <div className="min-w-0 flex-1 space-y-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-medium text-sm text-[var(--text-primary)]">
+                              {cm.name}
+                            </span>
+                            {cm.isLive && (
+                              <span className="flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-red-500/20 text-red-400">
+                                <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
+                                Live
+                              </span>
+                            )}
+                            <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text-secondary)]">
+                              {typeLabel}
+                            </span>
+                          </div>
+                          <p className="text-xs text-[var(--text-muted)]">
+                            {formatCricDate(cm.dateTimeLocal || cm.date)}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => handleAddFromCricApi(cm)}
+                          disabled={!!state}
+                          className={`shrink-0 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors disabled:cursor-not-allowed ${
+                            state === 'added'
+                              ? 'bg-green-500/20 text-green-400 disabled:opacity-100'
+                              : state === 'adding'
+                              ? 'bg-green-500/20 text-green-400 opacity-60'
+                              : 'bg-green-500 hover:bg-green-600 text-white'
+                          }`}
+                        >
+                          {state === 'added' ? 'Added ✓' : state === 'adding' ? 'Adding…' : 'Add to Group'}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )
+            )}
+          </div>
+        </section>
+
         {/* ── Create Match ── */}
         <section>
           <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Create Match</h2>
