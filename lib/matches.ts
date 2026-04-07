@@ -60,11 +60,12 @@ export async function getMatches(groupId: string): Promise<Match[]> {
   const snap = await getDocs(
     query(
       collection(db, 'matches'),
-      where('groupId', '==', groupId),
-      orderBy('matchDate', 'desc')
+      where('groupId', '==', groupId)
     )
   );
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Match));
+  return snap.docs
+    .map((d) => ({ id: d.id, ...d.data() } as Match))
+    .sort((a, b) => b.matchDate.toMillis() - a.matchDate.toMillis());
 }
 
 export async function getMatchById(matchId: string): Promise<Match | null> {
