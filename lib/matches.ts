@@ -107,6 +107,20 @@ export async function placeBet(
   return ref.id;
 }
 
+export async function getUserBetsForGroup(
+  groupId: string,
+  userId: string
+): Promise<Bet[]> {
+  // Single-field query on userId (auto-indexed, satisfies own-bet read rule).
+  // groupId is filtered in JS since bets span multiple groups.
+  const snap = await getDocs(
+    query(collection(db, 'bets'), where('userId', '==', userId))
+  );
+  return snap.docs
+    .filter((d) => d.data().groupId === groupId)
+    .map((d) => ({ id: d.id, ...d.data() } as Bet));
+}
+
 export async function getUserBetForMatch(
   matchId: string,
   userId: string
