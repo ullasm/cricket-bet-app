@@ -143,22 +143,27 @@ function MatchCard({ match, groupId, myBet, bets, memberNames, currentUserId, on
   }, [myBet?.id, myBet?.pickedOutcome]);
 
   const canChangeBet = Boolean(myBet && myBet.status === 'pending') && canBet && Boolean(currentUserId);
+  const canPlaceInlineBet = !myBet && canBet && Boolean(currentUserId);
 
   async function handleChangeBet() {
-    if (!currentUserId || !myBet || !selectedOutcome) return;
+    if (!currentUserId || !selectedOutcome) return;
     setUpdatingBet(true);
     try {
-      await upsertUserBetForMatch(match.id, groupId, currentUserId, selectedOutcome, BET_STAKE);
+      const betId = await upsertUserBetForMatch(match.id, groupId, currentUserId, selectedOutcome, BET_STAKE);
       const updatedBet: Bet = {
-        ...myBet,
+        id: myBet?.id ?? betId,
+        matchId: match.id,
+        groupId,
+        userId: currentUserId,
         pickedOutcome: selectedOutcome,
         stake: BET_STAKE,
-        status: 'pending',
         pointsDelta: null,
+        status: 'pending',
+        placedAt: myBet?.placedAt ?? match.matchDate,
       };
       onBetUpdated(updatedBet);
       setEditingBet(false);
-      toast.success('Bet updated successfully!');
+      toast.success(myBet ? 'Bet updated successfully!' : 'Bet placed successfully!');
     } catch (err) {
       toast.error(getBetActionErrorMessage(err));
     } finally {
@@ -205,18 +210,22 @@ function MatchCard({ match, groupId, myBet, bets, memberNames, currentUserId, on
               </button>
             )}
           </div>
-        ) : canBet ? (
-          <Link
-            href={`/groups/${groupId}/bet/${match.id}`}
+        ) : canPlaceInlineBet ? (
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedOutcome(null);
+              setEditingBet(true);
+            }}
             className="text-xs font-semibold bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded-lg transition-colors"
           >
             Place Bet
-          </Link>
+          </button>
         ) : null}
       </div>
       {editingBet && (
         <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-input)] px-3 py-3 space-y-3">
-          <p className="text-xs font-semibold text-[var(--text-secondary)]">Change your bet</p>
+          <p className="text-xs font-semibold text-[var(--text-secondary)]">{myBet ? 'Change your bet' : 'Place your bet'}</p>
           <div className={`grid gap-2 ${match.drawAllowed ? 'grid-cols-3' : 'grid-cols-2'}`}>
             <button
               type="button"
@@ -260,7 +269,7 @@ function MatchCard({ match, groupId, myBet, bets, memberNames, currentUserId, on
             disabled={!selectedOutcome || updatingBet}
             className="w-full rounded-lg bg-green-500 hover:bg-green-600 disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-semibold py-2.5 transition-colors"
           >
-            {updatingBet ? 'Updating…' : 'Confirm change'}
+            {updatingBet ? 'Saving…' : myBet ? 'Confirm change' : 'Confirm bet'}
           </button>
           <button
             type="button"
@@ -914,6 +923,7 @@ export default function GroupDashboardPage() {
     </ProtectedRoute>
   );
 }
+
 
 
 
