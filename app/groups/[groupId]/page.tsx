@@ -10,7 +10,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { logoutUser } from '@/lib/auth';
 import { getGroupById, getUserGroupMember, getGroupMembers } from '@/lib/groups';
 import type { Group, GroupMember } from '@/lib/groups';
-import { getBetsForGroup, getMatches, getUserBetsForGroup } from '@/lib/matches';
+import { getBetsForGroup, getBetsForMatch, getMatches, getUserBetsForGroup } from '@/lib/matches';
 import type { Match, Bet } from '@/lib/matches';
 import { copyText, getInviteLink } from '@/lib/share';
 
@@ -21,6 +21,14 @@ function isSameDay(a: Date, b: Date) {
     a.getFullYear() === b.getFullYear() &&
     a.getMonth() === b.getMonth() &&
     a.getDate() === b.getDate()
+  );
+}
+
+function isPastMatch(match: Match, now: Date) {
+  return (
+    match.status === 'completed' ||
+    match.status === 'abandoned' ||
+    (match.status === 'upcoming' && match.matchDate.toDate() < now && !isSameDay(match.matchDate.toDate(), now))
   );
 }
 
@@ -251,6 +259,101 @@ function MatchCard({ match, groupId, myBet, bets, memberNames, currentUserId }: 
   );
 }
 
+interface PastMatchCardProps {
+  match: Match;
+  bets: Bet[];
+  memberNames: Record<string, string>;
+  loading: boolean;
+}
+
+function getBetChipLabel(bet: Bet) {
+  if (bet.status === 'won') {
+    return `+${bet.pointsDelta ?? 0} pts`;
+  }
+  if (bet.status === 'lost') {
+    return `−${Math.abs(bet.pointsDelta ?? 0)} pts`;
+  }
+  if (bet.status === 'refunded') {
+    return 'refunded';
+  }
+  return 'pending';
+}
+
+function getBetChipClasses(status: Bet['status']) {
+  if (status === 'won') {
+    return 'bg-green-500/15 text-green-400 border border-green-500/25';
+  }
+  if (status === 'lost') {
+    return 'bg-red-500/15 text-red-400 border border-red-500/25';
+  }
+  return 'bg-[var(--bg-input)] text-[var(--text-muted)] border border-[var(--border)]';
+}
+
+function getBetSortRank(status: Bet['status']) {
+  if (status === 'won') return 0;
+  if (status === 'lost') return 1;
+  return 2;
+}
+
+function PastMatchCard({ match, bets, memberNames, loading }: PastMatchCardProps) {
+  const resultLabel = getMatchResultLabel(match);
+  const sortedBets = [...bets].sort((a, b) => {
+    const rankDiff = getBetSortRank(a.status) - getBetSortRank(b.status);
+    if (rankDiff !== 0) return rankDiff;
+
+    const nameA = memberNames[a.userId] ?? 'Unknown';
+    const nameB = memberNames[b.userId] ?? 'Unknown';
+    return nameA.localeCompare(nameB);
+  });
+
+  return (
+    <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-[var(--card-padding)] flex flex-col gap-3">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <span className="font-semibold text-[var(--text-primary)]">
+          {match.teamA} <span className="text-[var(--text-muted)]">vs</span> {match.teamB}
+        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-[var(--bg-input)] text-[var(--text-secondary)]">
+            {match.format}
+          </span>
+          <StatusBadge status={match.status} />
+        </div>
+      </div>
+
+      <p className="text-xs text-[var(--text-muted)]">{formatMatchDate(match.matchDate)}</p>
+
+      <div className="flex items-center gap-2 text-xs font-medium text-[var(--text-primary)]">
+        <span aria-hidden>🏆</span>
+        <span>{resultLabel}</span>
+      </div>
+
+      {loading ? (
+        <div className="flex flex-wrap gap-2 animate-pulse">
+          <span className="h-7 w-28 rounded-full bg-[var(--bg-input)]" />
+          <span className="h-7 w-32 rounded-full bg-[var(--bg-input)]" />
+          <span className="h-7 w-24 rounded-full bg-[var(--bg-input)]" />
+        </div>
+      ) : sortedBets.length === 0 ? (
+        <p className="text-xs text-[var(--text-muted)]">No bets placed</p>
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          {sortedBets.map((bet) => {
+            const displayName = memberNames[bet.userId] ?? 'Unknown';
+            return (
+              <span
+                key={bet.id}
+                className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${getBetChipClasses(bet.status)}`}
+              >
+                {displayName}: {getBetChipLabel(bet)}
+              </span>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function EmptyCard({ message }: { message: string }) {
   return (
     <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-[var(--card-padding)] text-[var(--text-muted)] text-sm text-center">
@@ -273,6 +376,8 @@ function GroupDashboardContent() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [myBets, setMyBets] = useState<Record<string, Bet>>({});
   const [groupBets, setGroupBets] = useState<Record<string, Bet[]>>({});
+  const [pastMatchBets, setPastMatchBets] = useState<Record<string, Bet[]>>({});
+  const [loadingPastMatchBets, setLoadingPastMatchBets] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -317,7 +422,46 @@ function GroupDashboardContent() {
         }
 
         if (matchesResult.status === 'fulfilled') {
-          setMatches(matchesResult.value);
+          const fetchedMatches = matchesResult.value;
+          setMatches(fetchedMatches);
+
+          const now = new Date();
+          const fetchedPastMatches = fetchedMatches.filter((match) => isPastMatch(match, now));
+
+          if (fetchedPastMatches.length === 0) {
+            setPastMatchBets({});
+            setLoadingPastMatchBets(false);
+          } else {
+            setLoadingPastMatchBets(true);
+            const pastMatchBetsResults = await Promise.allSettled(
+              fetchedPastMatches.map(async (match) => ({
+                matchId: match.id,
+                bets: await getBetsForMatch(match.id, groupId),
+              }))
+            );
+
+            if (cancelled) {
+              return;
+            }
+
+            const pastBetsMap: Record<string, Bet[]> = {};
+            let hadPastBetErrors = false;
+
+            for (const result of pastMatchBetsResults) {
+              if (result.status === 'fulfilled') {
+                pastBetsMap[result.value.matchId] = result.value.bets;
+              } else {
+                hadPastBetErrors = true;
+              }
+            }
+
+            setPastMatchBets(pastBetsMap);
+            setLoadingPastMatchBets(false);
+
+            if (hadPastBetErrors) {
+              toast.error('Failed to load some past match bets');
+            }
+          }
         } else {
           toast.error('Failed to load matches');
         }
@@ -420,12 +564,7 @@ function GroupDashboardContent() {
       m.matchDate.toDate() > today &&
       !isSameDay(m.matchDate.toDate(), today)
   );
-  const pastMatches = matches.filter(
-    (m) =>
-      m.status === 'completed' ||
-      m.status === 'abandoned' ||
-      (m.status === 'upcoming' && m.matchDate.toDate() < today && !isSameDay(m.matchDate.toDate(), today))
-  );
+  const pastMatches = matches.filter((m) => isPastMatch(m, today));
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
@@ -550,14 +689,12 @@ function GroupDashboardContent() {
           ) : (
             <div className="space-y-3">
               {pastMatches.map((m) => (
-                <MatchCard
+                <PastMatchCard
                   key={m.id}
                   match={m}
-                  groupId={groupId}
-                  myBet={myBets[m.id]}
-                  bets={groupBets[m.id] ?? []}
+                  bets={pastMatchBets[m.id] ?? []}
                   memberNames={memberNames}
-                  currentUserId={user?.uid}
+                  loading={loadingPastMatchBets}
                 />
               ))}
             </div>
@@ -652,6 +789,11 @@ export default function GroupDashboardPage() {
     </ProtectedRoute>
   );
 }
+
+
+
+
+
 
 
 
