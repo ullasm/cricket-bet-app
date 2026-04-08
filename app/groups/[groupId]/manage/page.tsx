@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
+import { Pencil, RefreshCw } from 'lucide-react';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import ThemeSwitcher from '@/components/ThemeSwitcher';
 import { useAuth } from '@/lib/AuthContext';
@@ -22,6 +23,7 @@ import {
 } from '@/lib/groups';
 import type { Group, GroupMember } from '@/lib/groups';
 import { copyText, getInviteLink } from '@/lib/share';
+import { Spinner, Button, Badge, Card, FormInput, Modal, SectionHeader, PageHeader, Avatar, CenteredCard } from '@/components/ui';
 
 function ManageContent() {
   const params = useParams<{ groupId: string }>();
@@ -181,7 +183,6 @@ function ManageContent() {
     }
   }
 
-
   async function handleDeleteGroup() {
     if (!user || !group) return;
 
@@ -202,6 +203,7 @@ function ManageContent() {
       setDeletingGroup(false);
     }
   }
+
   function startEditingMemberName(member: GroupMember) {
     setEditingMemberId(member.userId);
     setMemberNameInput(member.displayName);
@@ -231,47 +233,38 @@ function ManageContent() {
   // ── load error ───────────────────────────────────────────────────────────
   if (loadError) {
     return (
-      <div className="min-h-screen bg-[var(--bg-primary)] flex flex-col items-center justify-center gap-4 px-4">
-        <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-8 max-w-sm w-full text-center space-y-4">
+      <CenteredCard maxWidth="max-w-sm">
+        <Card variant="modal" padding="p-8" className="text-center space-y-4">
           <p className="text-red-400 font-semibold">{loadError}</p>
-          <button
+          <Button
+            variant="primary"
+            size="md"
             onClick={() => { setLoadError(null); setRetryKey((k) => k + 1); }}
-            className="inline-block bg-green-500 hover:bg-green-600 text-white font-semibold px-5 py-2 rounded-lg transition-colors text-sm"
           >
             Retry
-          </button>
-        </div>
-      </div>
+          </Button>
+        </Card>
+      </CenteredCard>
     );
   }
 
   // ── loading ──────────────────────────────────────────────────────────────
   if (isAdmin === undefined) {
-    return (
-      <div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center">
-        <svg className="animate-spin h-10 w-10 text-green-500" fill="none" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-        </svg>
-      </div>
-    );
+    return <Spinner size="lg" fullPage />;
   }
 
   // ── access denied ────────────────────────────────────────────────────────
   if (!isAdmin) {
     return (
-      <div className="min-h-screen bg-[var(--bg-primary)] flex flex-col items-center justify-center gap-4 px-4">
-        <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-8 max-w-sm w-full text-center space-y-4">
+      <CenteredCard maxWidth="max-w-sm">
+        <Card variant="modal" padding="p-8" className="text-center space-y-4">
           <p className="text-red-400 font-semibold">Access denied</p>
           <p className="text-sm text-[var(--text-secondary)]">Admin privileges required.</p>
-          <Link
-            href={`/groups/${groupId}`}
-            className="inline-block bg-green-500 hover:bg-green-600 text-white font-semibold px-5 py-2 rounded-lg transition-colors text-sm"
-          >
+          <Button variant="primary" size="md" href={`/groups/${groupId}`}>
             Back to Group
-          </Link>
-        </div>
-      </div>
+          </Button>
+        </Card>
+      </CenteredCard>
     );
   }
 
@@ -279,156 +272,142 @@ function ManageContent() {
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
-      {/* Confirm delete group modal */}
-      {confirmDeleteGroup && group && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
-          <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-6 max-w-md w-full space-y-4">
-            <h3 className="font-semibold text-[var(--text-primary)]">Delete group?</h3>
-            <p className="text-sm text-[var(--text-secondary)]">
-              This will permanently delete the group, all matches, all bets, and all member links. This action cannot be undone.
-            </p>
-            <div className="space-y-2">
-              <label className="block text-xs text-[var(--text-muted)]">
-                Type <span className="font-semibold text-[var(--text-primary)]">{group.name}</span> to confirm
-              </label>
-              <input
-                type="text"
-                value={deleteGroupInput}
-                onChange={(e) => setDeleteGroupInput(e.target.value)}
-                className="w-full rounded-lg bg-[var(--bg-input)] border border-[var(--border)] px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                autoFocus
-              />
-            </div>
-            <div className="flex gap-3">
-              <button
-                onClick={() => {
-                  setConfirmDeleteGroup(false);
-                  setDeleteGroupInput('');
-                }}
-                className="flex-1 rounded-lg border border-[var(--border)] bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] text-sm font-medium py-2 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDeleteGroup}
-                disabled={deletingGroup || deleteGroupInput.trim() !== group.name.trim()}
-                className="flex-1 rounded-lg bg-red-500 hover:bg-red-600 disabled:opacity-60 text-white text-sm font-semibold py-2 transition-colors"
-              >
-                {deletingGroup ? 'Deleting…' : 'Delete Group'}
-              </button>
-            </div>
+
+      {/* Delete group confirmation modal */}
+      <Modal
+        open={confirmDeleteGroup && !!group}
+        onClose={() => { setConfirmDeleteGroup(false); setDeleteGroupInput(''); }}
+        maxWidth="md"
+        title="Delete group?"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-[var(--text-secondary)]">
+            This will permanently delete the group, all matches, all bets, and all member links. This action cannot be undone.
+          </p>
+          <div className="space-y-2">
+            <label className="block text-xs text-[var(--text-muted)]">
+              Type <span className="font-semibold text-[var(--text-primary)]">{group?.name}</span> to confirm
+            </label>
+            <FormInput
+              type="text"
+              value={deleteGroupInput}
+              onChange={(e) => setDeleteGroupInput(e.target.value)}
+              danger
+              autoFocus
+            />
+          </div>
+          <div className="flex gap-3">
+            <Button
+              variant="secondary"
+              size="md"
+              className="flex-1"
+              onClick={() => { setConfirmDeleteGroup(false); setDeleteGroupInput(''); }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              size="md"
+              className="flex-1"
+              loading={deletingGroup}
+              disabled={deleteGroupInput.trim() !== group?.name.trim()}
+              onClick={handleDeleteGroup}
+            >
+              Delete Group
+            </Button>
           </div>
         </div>
-      )}
-      {/* Confirm remove modal */}
-      {confirmRemove && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
-          <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-6 max-w-sm w-full space-y-4">
-            <h3 className="font-semibold text-[var(--text-primary)]">Remove member?</h3>
-            <p className="text-sm text-[var(--text-secondary)]">
-              Are you sure you want to remove{' '}
-              <span className="font-medium text-[var(--text-primary)]">{confirmRemove.displayName}</span>{' '}
-              from the group?
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setConfirmRemove(null)}
-                className="flex-1 rounded-lg border border-[var(--border)] bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] text-sm font-medium py-2 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleRemoveConfirmed}
-                className="flex-1 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-semibold py-2 transition-colors"
-              >
-                Remove
-              </button>
-            </div>
+      </Modal>
+
+      {/* Remove member confirmation modal */}
+      <Modal
+        open={!!confirmRemove}
+        onClose={() => setConfirmRemove(null)}
+        maxWidth="sm"
+        title="Remove member?"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-[var(--text-secondary)]">
+            Are you sure you want to remove{' '}
+            <span className="font-medium text-[var(--text-primary)]">{confirmRemove?.displayName}</span>{' '}
+            from the group?
+          </p>
+          <div className="flex gap-3">
+            <Button
+              variant="secondary"
+              size="md"
+              className="flex-1"
+              onClick={() => setConfirmRemove(null)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              size="md"
+              className="flex-1"
+              onClick={handleRemoveConfirmed}
+            >
+              Remove
+            </Button>
           </div>
         </div>
-      )}
+      </Modal>
 
       {/* Navbar */}
-      <header className="bg-[var(--bg-card)] border-b border-[var(--border)] px-6 py-4">
-        <div className="max-w-3xl mx-auto flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3 min-w-0">
-            <Link
-              href={`/groups/${groupId}`}
-              className="shrink-0 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
-            >
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-              </svg>
-            </Link>
-            <div className="min-w-0">
-              <Link href="/" className="text-base font-bold text-green-500 block hover:text-green-400 transition-colors">🏆 WhoWins</Link>
-              {group && (
-                <span className="text-xs text-[var(--text-secondary)] truncate block">
-                  {group.name} · Settings
-                </span>
-              )}
-            </div>
-          </div>
-          <div className="flex items-center gap-3 shrink-0">
+      <PageHeader
+        backHref={`/groups/${groupId}`}
+        subtitle={group ? `${group.name} · Settings` : undefined}
+        maxWidth="3xl"
+        actions={
+          <>
             <ThemeSwitcher />
             {userProfile && (
-              <div
-                className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold shrink-0"
-                style={{ backgroundColor: userProfile.avatarColor }}
-              >
-                {userProfile.displayName.charAt(0).toUpperCase()}
-              </div>
+              <Avatar name={userProfile.displayName} color={userProfile.avatarColor} size="md" />
             )}
-            <button
-              onClick={handleLogout}
-              className="text-sm text-[var(--text-secondary)] hover:text-red-400 transition-colors"
-            >
+            <Button variant="ghost-warning" size="md" onClick={handleLogout}>
               Sign out
-            </button>
-          </div>
-        </div>
-      </header>
+            </Button>
+          </>
+        }
+      />
 
       <main className="max-w-3xl mx-auto px-6 py-8 space-y-6">
+
         {/* ── Section 1: Group Info ── */}
-        <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-[var(--card-padding)] space-y-4">
-          <h2 className="text-lg font-semibold text-[var(--text-primary)]">Group Info</h2>
+        <Card variant="default" className="space-y-4">
+          <SectionHeader title="Group Info" mb="mb-0" />
 
           {editing ? (
             <div className="flex gap-2">
-              <input
+              <FormInput
                 type="text"
                 value={nameInput}
                 onChange={(e) => setNameInput(e.target.value)}
-                className="flex-1 rounded-lg bg-[var(--bg-input)] border border-[var(--border)] px-4 py-2.5 text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                wrapperClassName="flex-1"
                 autoFocus
                 onKeyDown={(e) => { if (e.key === 'Enter') handleSaveName(); if (e.key === 'Escape') setEditing(false); }}
               />
-              <button
-                onClick={handleSaveName}
-                disabled={savingName}
-                className="px-4 py-2 rounded-lg bg-green-500 hover:bg-green-600 disabled:opacity-60 text-white text-sm font-semibold transition-colors"
-              >
-                {savingName ? 'Saving…' : 'Save'}
-              </button>
-              <button
+              <Button variant="primary" size="md" loading={savingName} onClick={handleSaveName}>
+                Save
+              </Button>
+              <Button
+                variant="secondary"
+                size="md"
                 onClick={() => { setEditing(false); setNameInput(group?.name ?? ''); }}
-                className="px-3 py-2 rounded-lg bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] text-sm transition-colors"
               >
                 Cancel
-              </button>
+              </Button>
             </div>
           ) : (
             <div className="flex items-center gap-2">
               <span className="text-xl font-bold text-[var(--text-primary)]">{group?.name}</span>
+              {/* Pencil icon button: icon-only, no padding needed — left as raw button with lucide icon */}
               <button
                 onClick={() => { setEditing(true); setNameInput(group?.name ?? ''); }}
                 className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
                 title="Edit group name"
               >
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                </svg>
+                <Pencil className="h-4 w-4" />
               </button>
             </div>
           )}
@@ -443,25 +422,23 @@ function ManageContent() {
               })}
             </p>
           )}
-        </div>
+        </Card>
 
         {/* ── Section 2: Invite Link ── */}
-        <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-[var(--card-padding)] space-y-4">
-          <h2 className="text-lg font-semibold text-[var(--text-primary)]">Invite Link</h2>
+        <Card variant="default" className="space-y-4">
+          <SectionHeader title="Invite Link" mb="mb-0" />
 
           <div className="flex items-center gap-2">
             <code className="flex-1 text-xs bg-[var(--bg-input)] border border-[var(--border)] rounded-lg px-3 py-2 text-[var(--text-secondary)] truncate">
               {inviteLink}
             </code>
-            <button
-              onClick={copyInviteLink}
-              className="shrink-0 text-xs font-semibold bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] border border-[var(--border)] text-[var(--text-primary)] px-3 py-2 rounded-lg transition-colors"
-            >
+            <Button variant="secondary" size="sm" onClick={copyInviteLink} className="shrink-0">
               Copy
-            </button>
+            </Button>
           </div>
 
           <div className="flex flex-wrap gap-3">
+            {/* WhatsApp link: brand color #25D366, no matching Button variant — left as raw <a> */}
             <a
               href={`https://wa.me/?text=${encodeURIComponent(`Join my WhoWins group! Click here: ${inviteLink}`)}`}
               target="_blank"
@@ -474,31 +451,21 @@ function ManageContent() {
               Share on WhatsApp
             </a>
 
-            <button
+            <Button
+              variant="secondary"
+              size="md"
+              loading={regenerating}
               onClick={handleRegenerate}
-              disabled={regenerating}
-              className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] text-sm font-medium px-4 py-2 disabled:opacity-50 transition-colors"
             >
-              {regenerating ? (
-                <svg className="animate-spin h-3.5 w-3.5" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                </svg>
-              ) : (
-                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-              )}
+              {!regenerating && <RefreshCw className="h-3.5 w-3.5" />}
               Regenerate Link
-            </button>
+            </Button>
           </div>
-        </div>
+        </Card>
 
         {/* ── Section 3: Members ── */}
-        <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-[var(--card-padding)] space-y-4">
-          <h2 className="text-lg font-semibold text-[var(--text-primary)]">
-            Members ({members.length})
-          </h2>
+        <Card variant="default" className="space-y-4">
+          <SectionHeader title={`Members (${members.length})`} mb="mb-0" />
 
           <ul className="space-y-3">
             {members.map((m) => {
@@ -508,21 +475,19 @@ function ManageContent() {
                 <li
                   key={m.userId}
                   className={`flex flex-wrap items-center gap-3 py-2.5 px-3 rounded-lg ${
+                    // Member row isMe highlight: dynamic per-row background — left as raw class
                     isMe ? 'bg-green-500/10 border border-green-500/20' : 'bg-[var(--bg-input)]'
                   }`}
                 >
                   {/* Avatar */}
-                  <div
-                    className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold shrink-0"
-                    style={{ backgroundColor: m.avatarColor }}
-                  >
-                    {m.displayName.charAt(0).toUpperCase()}
-                  </div>
+                  <Avatar name={m.displayName} color={m.avatarColor} size="md" />
 
                   {/* Name + badges */}
                   <div className="flex items-center gap-2 flex-1 min-w-0 flex-wrap">
                     {editingMemberId === m.userId ? (
                       <>
+                        {/* Member name inline edit: uses bg-[var(--bg-card)] (not bg-[var(--bg-input)]),
+                            visually different from FormInput default — left as raw input */}
                         <input
                           type="text"
                           value={memberNameInput}
@@ -537,50 +502,45 @@ function ManageContent() {
                             }
                           }}
                         />
-                        <button
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          loading={loading}
                           onClick={() => handleSaveMemberName(m)}
-                          disabled={loading}
-                          className="text-xs font-medium px-2.5 py-1 rounded-lg bg-green-500 hover:bg-green-600 disabled:opacity-50 text-white transition-colors"
                         >
                           Save
-                        </button>
-                        <button
-                          onClick={() => {
-                            setEditingMemberId(null);
-                            setMemberNameInput('');
-                          }}
-                          className="text-xs font-medium px-2.5 py-1 rounded-lg bg-[var(--bg-hover)] text-[var(--text-secondary)] transition-colors"
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => { setEditingMemberId(null); setMemberNameInput(''); }}
                         >
                           Cancel
-                        </button>
+                        </Button>
                       </>
                     ) : (
                       <>
                         <span className="text-sm text-[var(--text-primary)] font-medium truncate">
                           {m.displayName}
                         </span>
+                        {/* Pencil icon: icon-only button, no padding variant — left as raw button with lucide icon */}
                         <button
                           onClick={() => startEditingMemberName(m)}
                           disabled={loading}
                           className="text-[var(--text-muted)] hover:text-[var(--text-primary)] disabled:opacity-50 transition-colors"
                           title="Edit member name"
                         >
-                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                          </svg>
+                          <Pencil className="h-4 w-4" />
                         </button>
                       </>
                     )}
                     {isMe && <span className="text-xs text-green-500">(you)</span>}
-                    <span
-                      className={`text-xs font-medium px-1.5 py-0.5 rounded ${
-                        m.role === 'admin'
-                          ? 'bg-yellow-500/20 text-yellow-400'
-                          : 'bg-[var(--bg-hover)] text-[var(--text-muted)]'
-                      }`}
+                    <Badge
+                      variant={m.role === 'admin' ? 'role-admin' : 'role-member'}
+                      shape="tag"
                     >
                       {m.role === 'admin' ? 'Admin' : 'Member'}
-                    </span>
+                    </Badge>
                   </div>
 
                   {/* Points */}
@@ -591,6 +551,7 @@ function ManageContent() {
                   {/* Actions (not shown for self) */}
                   {!isMe && (
                     <div className="flex items-center gap-2 shrink-0">
+                      {/* Make Admin / Remove Admin: dynamic hover colors (yellow/slate), no Button variant — left as raw buttons */}
                       {m.role === 'member' ? (
                         <button
                           onClick={() => handlePromote(m)}
@@ -608,37 +569,37 @@ function ManageContent() {
                           Remove Admin
                         </button>
                       )}
-                      <button
-                        onClick={() => setConfirmRemove(m)}
+                      <Button
+                        variant="ghost-danger"
+                        size="sm"
                         disabled={loading}
-                        className="text-xs font-medium px-2.5 py-1 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 disabled:opacity-50 transition-colors"
+                        onClick={() => setConfirmRemove(m)}
                       >
                         Remove
-                      </button>
+                      </Button>
                     </div>
                   )}
                 </li>
               );
             })}
           </ul>
-        </div>
+        </Card>
 
         {/* ── Section 4: Danger Zone ── */}
-        <div className="bg-[var(--bg-card)] border border-red-500/30 rounded-xl p-[var(--card-padding)] space-y-3">
+        <Card variant="danger-zone" className="space-y-3">
           <h2 className="text-lg font-semibold text-red-400">Danger Zone</h2>
           <p className="text-sm text-[var(--text-secondary)]">
             Deleting a group removes all matches, bets, and member records permanently.
           </p>
-          <button
-            onClick={() => {
-              setDeleteGroupInput('');
-              setConfirmDeleteGroup(true);
-            }}
-            className="rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 text-sm font-semibold px-4 py-2.5 transition-colors"
+          <Button
+            variant="ghost-danger"
+            size="lg"
+            onClick={() => { setDeleteGroupInput(''); setConfirmDeleteGroup(true); }}
           >
             Delete Group
-          </button>
-        </div>
+          </Button>
+        </Card>
+
       </main>
     </div>
   );
@@ -651,10 +612,3 @@ export default function ManagePage() {
     </ProtectedRoute>
   );
 }
-
-
-
-
-
-
-

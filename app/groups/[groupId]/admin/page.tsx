@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { doc, updateDoc, Timestamp } from 'firebase/firestore';
+import { RefreshCw } from 'lucide-react';
 import { db } from '@/lib/firebase';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import ThemeSwitcher from '@/components/ThemeSwitcher';
@@ -16,11 +16,14 @@ import { getMatches, createMatch, declareMatchResult, updateMatch, deleteMatch, 
 import type { Match, Bet } from '@/lib/matches';
 import { getCricketMatches } from '@/lib/cricapi';
 import type { CricMatch } from '@/lib/cricapi';
+import { Spinner, Button, Badge, Card, FormInput, FormSelect, FormCheckbox, Modal, SectionHeader, PageHeader, Avatar, CenteredCard, matchStatusVariant } from '@/components/ui';
 
 type ResultOption = 'team_a' | 'team_b' | 'draw' | 'abandoned';
 type BetPickOption = 'team_a' | 'team_b' | 'draw';
 type MemberBetDraft = { pickedOutcome: '' | BetPickOption; stake: string };
 
+// INPUT_CLASS kept for manage-bets modal inputs only — those use text-xs labels
+// which differ from FormInput/FormSelect's text-sm labels (would be a visual change)
 const INPUT_CLASS =
   'w-full rounded-lg bg-[var(--bg-input)] border border-[var(--border)] px-4 py-2.5 text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent';
 
@@ -77,8 +80,6 @@ function getResultLabel(match: Match): string {
   return match.result;
 }
 
-
-
 function getBetLabel(match: Match, pickedOutcome: Bet['pickedOutcome']): string {
   if (pickedOutcome === 'team_a') return match.teamA;
   if (pickedOutcome === 'team_b') return match.teamB;
@@ -90,20 +91,6 @@ function getActionErrorMessage(err: unknown, fallback: string): string {
     return 'Firestore rules need to be published to allow admin-managed bets for past matches.';
   }
   return err instanceof Error ? err.message : fallback;
-}
-
-function StatusBadge({ status }: { status: Match['status'] }) {
-  const styles: Record<Match['status'], string> = {
-    live: 'bg-green-500/20 text-green-400',
-    upcoming: 'bg-yellow-500/20 text-yellow-400',
-    completed: 'bg-slate-600/40 text-[var(--text-muted)]',
-    abandoned: 'bg-red-500/20 text-red-400',
-  };
-  return (
-    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${styles[status]}`}>
-      {status.charAt(0).toUpperCase() + status.slice(1)}
-    </span>
-  );
 }
 
 // ── main content ──────────────────────────────────────────────────────────────
@@ -422,6 +409,7 @@ function GroupAdminContent() {
       setCreating(false);
     }
   }
+
   async function handleToggleBetting(match: Match) {
     setTogglingBet((p) => ({ ...p, [match.id]: true }));
     try {
@@ -524,57 +512,54 @@ function GroupAdminContent() {
   // ── load error ───────────────────────────────────────────────────────────
   if (loadError) {
     return (
-      <div className="min-h-screen bg-[var(--bg-primary)] flex flex-col items-center justify-center gap-4 px-4">
-        <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-8 max-w-sm w-full text-center space-y-4">
+      <CenteredCard maxWidth="max-w-sm">
+        <Card variant="modal" padding="p-8" className="text-center space-y-4">
           <p className="text-red-400 font-semibold">{loadError}</p>
-          <button
+          <Button
+            variant="primary"
+            size="md"
             onClick={() => { setLoadError(null); setRetryKey((k) => k + 1); }}
-            className="inline-block bg-green-500 hover:bg-green-600 text-white font-semibold px-5 py-2 rounded-lg transition-colors text-sm"
           >
             Retry
-          </button>
-        </div>
-      </div>
+          </Button>
+        </Card>
+      </CenteredCard>
     );
   }
 
   // ── loading ──────────────────────────────────────────────────────────────
   if (isAdmin === undefined) {
-    return (
-      <div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center">
-        <svg className="animate-spin h-10 w-10 text-green-500" fill="none" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-        </svg>
-      </div>
-    );
+    return <Spinner size="lg" fullPage />;
   }
 
   // ── access denied ────────────────────────────────────────────────────────
   if (!isAdmin) {
     return (
-      <div className="min-h-screen bg-[var(--bg-primary)] flex flex-col items-center justify-center gap-4 px-4">
-        <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-8 max-w-sm w-full text-center space-y-4">
+      <CenteredCard maxWidth="max-w-sm">
+        <Card variant="modal" padding="p-8" className="text-center space-y-4">
           <p className="text-red-400 font-semibold">Access denied</p>
           <p className="text-sm text-[var(--text-secondary)]">You need admin privileges to view this page.</p>
-          <Link
-            href={`/groups/${groupId}`}
-            className="inline-block bg-green-500 hover:bg-green-600 text-white font-semibold px-5 py-2 rounded-lg transition-colors text-sm"
-          >
+          <Button variant="primary" size="md" href={`/groups/${groupId}`}>
             Back to Group
-          </Link>
-        </div>
-      </div>
+          </Button>
+        </Card>
+      </CenteredCard>
     );
   }
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
 
-      {managingBetsFor && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 py-6">
-          <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto space-y-4">
-            <div className="flex items-start justify-between gap-4">
+      {/* ── Manage Member Bets modal ── */}
+      <Modal
+        open={!!managingBetsFor}
+        onClose={() => setManagingBetsFor(null)}
+        maxWidth="4xl"
+        scrollable
+      >
+        {managingBetsFor && (
+          <>
+            <div className="flex items-start justify-between gap-4 mb-4">
               <div>
                 <h3 className="font-semibold text-[var(--text-primary)]">Manage Member Bets</h3>
                 <p className="text-sm text-[var(--text-secondary)] mt-1">
@@ -584,13 +569,15 @@ function GroupAdminContent() {
                   Add, update, or clear any member bet. Finished matches will automatically re-settle points after each change.
                 </p>
               </div>
-              <button
+              <Button
                 type="button"
+                variant="secondary"
+                size="sm"
+                className="shrink-0"
                 onClick={() => setManagingBetsFor(null)}
-                className="shrink-0 rounded-lg border border-[var(--border)] bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] px-3 py-2 text-sm text-[var(--text-primary)] transition-colors"
               >
                 Close
-              </button>
+              </Button>
             </div>
 
             {loadingManageBets ? (
@@ -607,15 +594,12 @@ function GroupAdminContent() {
                     <div key={member.userId} className="rounded-xl border border-[var(--border)] bg-[var(--bg-input)] p-4 space-y-3">
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <div className="flex items-center gap-3 min-w-0">
-                          <div
-                            className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-semibold shrink-0"
-                            style={{ backgroundColor: member.avatarColor }}
-                          >
-                            {member.displayName.charAt(0).toUpperCase()}
-                          </div>
+                          <Avatar name={member.displayName} color={member.avatarColor} size="lg" />
                           <div className="min-w-0">
                             <div className="flex flex-wrap items-center gap-2">
                               <span className="font-medium text-[var(--text-primary)] truncate">{member.displayName}</span>
+                              {/* Role badge in bets modal: uses bg-[var(--bg-card)] + border, different
+                                  from role-admin/role-member Badge which has no border — left as raw span */}
                               <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text-secondary)]">
                                 {member.role}
                               </span>
@@ -635,6 +619,8 @@ function GroupAdminContent() {
                         </div>
                       </div>
 
+                      {/* Manage bets inputs: labels are text-xs (not text-sm), use INPUT_CLASS directly
+                          to avoid visual change from FormInput/FormSelect's text-sm label sizing */}
                       <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_160px_auto_auto] gap-3 items-end">
                         <div>
                           <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">Pick</label>
@@ -661,182 +647,166 @@ function GroupAdminContent() {
                             placeholder="Points"
                           />
                         </div>
-                        <button
+                        <Button
                           type="button"
+                          variant="primary"
+                          size="md"
+                          loading={isSaving}
                           onClick={() => handleSaveMemberBet(member.userId)}
-                          disabled={isSaving}
-                          className="rounded-lg bg-green-500 hover:bg-green-600 disabled:opacity-60 disabled:cursor-not-allowed px-4 py-2.5 text-sm font-semibold text-white transition-colors"
                         >
-                          {isSaving ? 'Saving…' : currentBet ? 'Update Bet' : 'Add Bet'}
-                        </button>
-                        <button
+                          {currentBet ? 'Update Bet' : 'Add Bet'}
+                        </Button>
+                        <Button
                           type="button"
-                          onClick={() => handleClearMemberBet(member.userId)}
+                          variant="secondary"
+                          size="md"
                           disabled={isSaving || !currentBet}
-                          className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] hover:bg-[var(--bg-hover)] disabled:opacity-50 disabled:cursor-not-allowed px-4 py-2.5 text-sm font-medium text-[var(--text-primary)] transition-colors"
+                          onClick={() => handleClearMemberBet(member.userId)}
                         >
                           Clear Bet
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   );
                 })}
               </div>
             )}
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </Modal>
 
-      {/* ── Edit modal ── */}
-      {editingMatch && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
-          <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-6 max-w-lg w-full space-y-4">
-            <h3 className="font-semibold text-[var(--text-primary)]">Edit Match</h3>
-            <form onSubmit={handleSaveEdit} className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Team A</label>
-                  <input type="text" required value={editTeamA} onChange={(e) => setEditTeamA(e.target.value)} className={INPUT_CLASS} />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Team B</label>
-                  <input type="text" required value={editTeamB} onChange={(e) => setEditTeamB(e.target.value)} className={INPUT_CLASS} />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Format</label>
-                  <select value={editFormat} onChange={(e) => { const f = e.target.value as Match['format']; setEditFormat(f); if (f === 'Test') setEditDrawAllowed(true); else setEditDrawAllowed(false); }} className={INPUT_CLASS}>
-                    <option value="T20">T20</option>
-                    <option value="ODI">ODI</option>
-                    <option value="Test">Test</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Match Date &amp; Time</label>
-                  <input type="datetime-local" required value={editMatchDate} onChange={(e) => setEditMatchDate(e.target.value)} className={INPUT_CLASS} />
-                </div>
-              </div>
-              <div className="flex flex-wrap items-center gap-6">
-                <label className="flex items-center gap-2 cursor-pointer select-none">
-                  <input type="checkbox" checked={editDrawAllowed} disabled={editFormat === 'Test'} onChange={(e) => setEditDrawAllowed(e.target.checked)} className="w-4 h-4 accent-green-500" />
-                  <span className="text-sm text-[var(--text-secondary)]">Allow Draw{editFormat === 'Test' && <span className="ml-1 text-xs text-[var(--text-muted)]">(auto for Test)</span>}</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer select-none">
-                  <input type="checkbox" checked={editBettingOpen} onChange={(e) => setEditBettingOpen(e.target.checked)} className="w-4 h-4 accent-green-500" />
-                  <span className="text-sm text-[var(--text-secondary)]">Betting Open</span>
-                </label>
-              </div>
-              {editDrawAllowed && (
-                <div className="max-w-xs">
-                  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">No Draw Policy</label>
-                  <select value={editNoDrawPolicy} onChange={(e) => setEditNoDrawPolicy(e.target.value as Match['noDrawPolicy'])} className={INPUT_CLASS}>
-                    <option value="refund">Refund all</option>
-                    <option value="rollover">Rollover</option>
-                  </select>
-                </div>
-              )}
-              <div className="flex gap-3 pt-1">
-                <button type="submit" disabled={saving} className="flex-1 rounded-lg bg-green-500 hover:bg-green-600 disabled:opacity-60 text-white text-sm font-semibold py-2.5 transition-colors">
-                  {saving ? 'Saving…' : 'Save Changes'}
-                </button>
-                <button type="button" onClick={() => setEditingMatch(null)} className="flex-1 rounded-lg border border-[var(--border)] bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] text-sm font-medium py-2.5 transition-colors">
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* ── Edit match modal ── */}
+      <Modal
+        open={!!editingMatch}
+        onClose={() => setEditingMatch(null)}
+        maxWidth="lg"
+        title="Edit Match"
+      >
+        {editingMatch && (
+          <form onSubmit={handleSaveEdit} className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <FormInput label="Team A" type="text" required value={editTeamA} onChange={(e) => setEditTeamA(e.target.value)} />
+              <FormInput label="Team B" type="text" required value={editTeamB} onChange={(e) => setEditTeamB(e.target.value)} />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <FormSelect
+                label="Format"
+                value={editFormat}
+                onChange={(e) => {
+                  const f = e.target.value as Match['format'];
+                  setEditFormat(f);
+                  if (f === 'Test') setEditDrawAllowed(true);
+                  else setEditDrawAllowed(false);
+                }}
+              >
+                <option value="T20">T20</option>
+                <option value="ODI">ODI</option>
+                <option value="Test">Test</option>
+              </FormSelect>
+              <FormInput
+                label="Match Date &amp; Time"
+                type="datetime-local"
+                required
+                value={editMatchDate}
+                onChange={(e) => setEditMatchDate(e.target.value)}
+              />
+            </div>
+            <div className="flex flex-wrap items-center gap-6">
+              <FormCheckbox
+                label="Allow Draw"
+                checked={editDrawAllowed}
+                disabled={editFormat === 'Test'}
+                onChange={(e) => setEditDrawAllowed(e.target.checked)}
+                hint={editFormat === 'Test' ? '(auto for Test)' : undefined}
+              />
+              <FormCheckbox
+                label="Betting Open"
+                checked={editBettingOpen}
+                onChange={(e) => setEditBettingOpen(e.target.checked)}
+              />
+            </div>
+            {editDrawAllowed && (
+              <FormSelect
+                label="No Draw Policy"
+                value={editNoDrawPolicy}
+                onChange={(e) => setEditNoDrawPolicy(e.target.value as Match['noDrawPolicy'])}
+                wrapperClassName="max-w-xs"
+              >
+                <option value="refund">Refund all</option>
+                <option value="rollover">Rollover</option>
+              </FormSelect>
+            )}
+            <div className="flex gap-3 pt-1">
+              <Button type="submit" variant="primary" size="lg" loading={saving} className="flex-1">
+                Save Changes
+              </Button>
+              <Button type="button" variant="secondary" size="lg" className="flex-1" onClick={() => setEditingMatch(null)}>
+                Cancel
+              </Button>
+            </div>
+          </form>
+        )}
+      </Modal>
 
       {/* ── Delete confirmation modal ── */}
-      {confirmDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
-          <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-6 max-w-sm w-full space-y-4">
-            <h3 className="font-semibold text-[var(--text-primary)]">Delete match?</h3>
+      <Modal
+        open={!!confirmDelete}
+        onClose={() => setConfirmDelete(null)}
+        maxWidth="sm"
+        title="Delete match?"
+      >
+        {confirmDelete && (
+          <div className="space-y-4">
             <p className="text-sm text-[var(--text-secondary)]">
               Are you sure you want to delete{' '}
               <span className="font-medium text-[var(--text-primary)]">{confirmDelete.teamA} vs {confirmDelete.teamB}</span>?
               This cannot be undone.
             </p>
             <div className="flex gap-3">
-              <button onClick={() => setConfirmDelete(null)} className="flex-1 rounded-lg border border-[var(--border)] bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] text-sm font-medium py-2 transition-colors">
+              <Button variant="secondary" size="md" className="flex-1" onClick={() => setConfirmDelete(null)}>
                 Cancel
-              </button>
-              <button onClick={handleDeleteConfirmed} disabled={deleting} className="flex-1 rounded-lg bg-red-500 hover:bg-red-600 disabled:opacity-60 text-white text-sm font-semibold py-2 transition-colors">
-                {deleting ? 'Deleting…' : 'Delete'}
-              </button>
+              </Button>
+              <Button variant="danger" size="md" className="flex-1" loading={deleting} onClick={handleDeleteConfirmed}>
+                Delete
+              </Button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
 
       {/* Navbar */}
-      <header className="bg-[var(--bg-card)] border-b border-[var(--border)] px-6 py-4">
-        <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3 min-w-0">
-            <Link
-              href={`/groups/${groupId}`}
-              className="shrink-0 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
-            >
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-              </svg>
-            </Link>
-            <div className="min-w-0">
-              <Link href="/" className="text-base font-bold text-green-500 block hover:text-green-400 transition-colors">🏆 WhoWins</Link>
-              {group && (
-                <span className="text-xs text-[var(--text-secondary)] truncate block">{group.name} · Admin</span>
-              )}
-            </div>
-          </div>
-          <div className="flex items-center gap-3 shrink-0">
+      <PageHeader
+        backHref={`/groups/${groupId}`}
+        subtitle={group ? `${group.name} · Admin` : undefined}
+        maxWidth="4xl"
+        actions={
+          <>
             <ThemeSwitcher />
             {userProfile && (
-              <div
-                className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold shrink-0"
-                style={{ backgroundColor: userProfile.avatarColor }}
-              >
-                {userProfile.displayName.charAt(0).toUpperCase()}
-              </div>
+              <Avatar name={userProfile.displayName} color={userProfile.avatarColor} size="md" />
             )}
-            <button
-              onClick={handleLogout}
-              className="text-sm text-[var(--text-secondary)] hover:text-red-400 transition-colors"
-            >
+            <Button variant="ghost-warning" size="md" onClick={handleLogout}>
               Sign out
-            </button>
-          </div>
-        </div>
-      </header>
+            </Button>
+          </>
+        }
+      />
 
       <main className="max-w-4xl mx-auto px-6 py-8 space-y-10">
+
         {/* ── CricAPI Import ── */}
         <section>
-          <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Import Matches from CricAPI</h2>
-          <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-[var(--card-padding)] space-y-4">
-            <button
+          <SectionHeader title="Import Matches from CricAPI" mb="mb-4" />
+          <Card variant="default" className="space-y-4">
+            <Button
+              variant="secondary"
+              size="md"
+              loading={cricLoading}
               onClick={handleFetchCricMatches}
-              disabled={cricLoading}
-              className="flex items-center gap-2 rounded-lg bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] border border-[var(--border)] text-[var(--text-primary)] font-semibold text-sm px-4 py-2.5 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {cricLoading ? (
-                <>
-                  <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                  </svg>
-                  Fetching…
-                </>
-              ) : (
-                <>
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                  Fetch Live &amp; Upcoming Matches
-                </>
-              )}
-            </button>
+              {!cricLoading && <RefreshCw className="h-4 w-4" />}
+              Fetch Live &amp; Upcoming Matches
+            </Button>
 
             {cricFetched && !cricLoading && (
               cricMatches.length === 0 ? (
@@ -859,12 +829,14 @@ function GroupAdminContent() {
                             <span className="font-medium text-sm text-[var(--text-primary)]">
                               {cm.name}
                             </span>
+                            {/* Live badge: contains animated pulsing dot — can't be done with Badge component */}
                             {cm.isLive && (
                               <span className="flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-red-500/20 text-red-400">
                                 <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
                                 Live
                               </span>
                             )}
+                            {/* Match type badge: uses bg-[var(--bg-card)] + border, different from Badge format variant — left as raw span */}
                             <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text-secondary)]">
                               {typeLabel}
                             </span>
@@ -873,6 +845,7 @@ function GroupAdminContent() {
                             {formatCricDate(cm.dateTimeLocal || cm.date)}
                           </p>
                         </div>
+                        {/* "Add to Group" button: has 3 states (default/adding/added) with dynamic colors — no Button variant */}
                         <button
                           onClick={() => handleAddFromCricApi(cm)}
                           disabled={!!state}
@@ -892,173 +865,132 @@ function GroupAdminContent() {
                 </div>
               )
             )}
-          </div>
+          </Card>
         </section>
 
         {/* ── Create Match ── */}
         <section>
-          <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Create Match</h2>
-          <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-[var(--card-padding)]">
+          <SectionHeader title="Create Match" mb="mb-4" />
+          <Card variant="default">
             <form onSubmit={handleCreateMatch} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Team A</label>
-                  <input type="text" required value={teamA} onChange={(e) => setTeamA(e.target.value)} placeholder="e.g. India" className={INPUT_CLASS} />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Team B</label>
-                  <input type="text" required value={teamB} onChange={(e) => setTeamB(e.target.value)} placeholder="e.g. Australia" className={INPUT_CLASS} />
-                </div>
+                <FormInput label="Team A" type="text" required value={teamA} onChange={(e) => setTeamA(e.target.value)} placeholder="e.g. India" />
+                <FormInput label="Team B" type="text" required value={teamB} onChange={(e) => setTeamB(e.target.value)} placeholder="e.g. Australia" />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Format</label>
-                  <select value={format} onChange={(e) => setFormat(e.target.value as Match['format'])} className={INPUT_CLASS}>
-                    <option value="T20">T20</option>
-                    <option value="ODI">ODI</option>
-                    <option value="Test">Test</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Match Date &amp; Time</label>
-                  <input type="datetime-local" required value={matchDate} onChange={(e) => setMatchDate(e.target.value)} className={INPUT_CLASS} />
-                </div>
+                <FormSelect label="Format" value={format} onChange={(e) => setFormat(e.target.value as Match['format'])}>
+                  <option value="T20">T20</option>
+                  <option value="ODI">ODI</option>
+                  <option value="Test">Test</option>
+                </FormSelect>
+                <FormInput
+                  label="Match Date &amp; Time"
+                  type="datetime-local"
+                  required
+                  value={matchDate}
+                  onChange={(e) => setMatchDate(e.target.value)}
+                />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Initial Status</label>
-                  <select value={creationStatus} onChange={(e) => setCreationStatus(e.target.value as Match['status'])} className={INPUT_CLASS}>
-                    <option value="upcoming">Upcoming</option>
-                    <option value="live">Live</option>
-                    <option value="completed">Completed</option>
-                    <option value="abandoned">Abandoned</option>
-                  </select>
-                </div>
+                <FormSelect label="Initial Status" value={creationStatus} onChange={(e) => setCreationStatus(e.target.value as Match['status'])}>
+                  <option value="upcoming">Upcoming</option>
+                  <option value="live">Live</option>
+                  <option value="completed">Completed</option>
+                  <option value="abandoned">Abandoned</option>
+                </FormSelect>
                 {creationStatus === 'completed' && (
-                  <div>
-                    <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Declared Result</label>
-                    <select value={creationResult} onChange={(e) => setCreationResult(e.target.value as Match['result'])} className={INPUT_CLASS}>
-                      <option value="pending" disabled>Select result...</option>
-                      <option value="team_a">{teamA.trim() || 'Team A'} wins</option>
-                      <option value="team_b">{teamB.trim() || 'Team B'} wins</option>
-                      {drawAllowed && <option value="draw">Draw</option>}
-                    </select>
-                  </div>
+                  <FormSelect label="Declared Result" value={creationResult} onChange={(e) => setCreationResult(e.target.value as Match['result'])}>
+                    <option value="pending" disabled>Select result...</option>
+                    <option value="team_a">{teamA.trim() || 'Team A'} wins</option>
+                    <option value="team_b">{teamB.trim() || 'Team B'} wins</option>
+                    {drawAllowed && <option value="draw">Draw</option>}
+                  </FormSelect>
                 )}
               </div>
 
               <div className="flex flex-wrap items-center gap-6">
-                <label className="flex items-center gap-2 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={drawAllowed}
-                    disabled={format === 'Test'}
-                    onChange={(e) => setDrawAllowed(e.target.checked)}
-                    className="w-4 h-4 accent-green-500"
-                  />
-                  <span className="text-sm text-[var(--text-secondary)]">
-                    Allow Draw
-                    {format === 'Test' && <span className="ml-1 text-xs text-[var(--text-muted)]">(auto for Test)</span>}
-                  </span>
-                </label>
+                <FormCheckbox
+                  label="Allow Draw"
+                  checked={drawAllowed}
+                  disabled={format === 'Test'}
+                  onChange={(e) => setDrawAllowed(e.target.checked)}
+                  hint={format === 'Test' ? '(auto for Test)' : undefined}
+                />
                 {(creationStatus === 'upcoming' || creationStatus === 'live') && (
-                  <label className="flex items-center gap-2 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={bettingOpen}
-                      onChange={(e) => setBettingOpen(e.target.checked)}
-                      className="w-4 h-4 accent-green-500"
-                    />
-                    <span className="text-sm text-[var(--text-secondary)]">Betting Open</span>
-                  </label>
+                  <FormCheckbox
+                    label="Betting Open"
+                    checked={bettingOpen}
+                    onChange={(e) => setBettingOpen(e.target.checked)}
+                  />
                 )}
               </div>
 
               {drawAllowed && (
-                <div className="max-w-xs">
-                  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">No Draw Policy</label>
-                  <select value={noDrawPolicy} onChange={(e) => setNoDrawPolicy(e.target.value as Match['noDrawPolicy'])} className={INPUT_CLASS}>
-                    <option value="refund">Refund all</option>
-                    <option value="rollover">Rollover</option>
-                  </select>
-                </div>
+                <FormSelect
+                  label="No Draw Policy"
+                  value={noDrawPolicy}
+                  onChange={(e) => setNoDrawPolicy(e.target.value as Match['noDrawPolicy'])}
+                  wrapperClassName="max-w-xs"
+                >
+                  <option value="refund">Refund all</option>
+                  <option value="rollover">Rollover</option>
+                </FormSelect>
               )}
 
               <p className="text-xs text-[var(--text-muted)]">
                 Use Completed or Abandoned to add historical matches that are already declared.
               </p>
 
-              <button
-                type="submit"
-                disabled={creating}
-                className="flex items-center gap-2 rounded-lg bg-green-500 hover:bg-green-600 disabled:opacity-60 disabled:cursor-not-allowed px-5 py-2.5 font-semibold text-white transition-colors"
-              >
-                {creating ? (
-                  <>
-                    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                    </svg>
-                    Creating…
-                  </>
-                ) : (
-                  'Create Match'
-                )}
-              </button>
+              <Button type="submit" variant="primary" size="lg" loading={creating}>
+                Create Match
+              </Button>
             </form>
-          </div>
+          </Card>
         </section>
 
         {/* ── Match list ── */}
         <section>
-          <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">All Matches</h2>
+          <SectionHeader title="All Matches" mb="mb-4" />
           {matches.length === 0 ? (
-            <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-[var(--card-padding)] text-[var(--text-muted)] text-sm text-center">
+            <Card variant="default" className="text-[var(--text-muted)] text-sm text-center">
               No matches yet — create one above
-            </div>
+            </Card>
           ) : (
             <div className="space-y-4">
               {matches.map((match) => {
                 const canToggleBetting = match.status === 'upcoming' || match.status === 'live';
                 const displayedResult = selectedResult[match.id] ?? (match.result === 'pending' ? '' : match.result);
                 return (
-                  <div key={match.id} className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-[var(--card-padding)] space-y-4">
+                  <Card key={match.id} variant="default" className="space-y-4">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div>
                         <span className="font-semibold text-[var(--text-primary)]">
                           {match.teamA} <span className="text-[var(--text-muted)]">vs</span> {match.teamB}
                         </span>
-                        <span className="ml-2 text-xs font-medium px-2 py-0.5 rounded-full bg-[var(--bg-input)] text-[var(--text-secondary)]">
-                          {match.format}
-                        </span>
-                      </div>                      <div className="flex items-center gap-2 flex-wrap justify-end">
-                        <StatusBadge status={match.status} />
-                        <button
-                          onClick={() => openManageBets(match)}
-                          className="text-xs font-medium px-2.5 py-1 rounded-lg bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border)] transition-colors"
-                        >
+                        <Badge variant="format" className="ml-2">{match.format}</Badge>
+                      </div>
+                      <div className="flex items-center gap-2 flex-wrap justify-end">
+                        <Badge variant={matchStatusVariant(match.status)}>
+                          {match.status.charAt(0).toUpperCase() + match.status.slice(1)}
+                        </Badge>
+                        <Button variant="secondary" size="sm" onClick={() => openManageBets(match)}>
                           Manage Bets
-                        </button>
-                        <button
-                          onClick={() => openEdit(match)}
-                          className="text-xs font-medium px-2.5 py-1 rounded-lg bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border)] transition-colors"
-                        >
+                        </Button>
+                        <Button variant="secondary" size="sm" onClick={() => openEdit(match)}>
                           Edit
-                        </button>
-                        <button
-                          onClick={() => setConfirmDelete(match)}
-                          className="text-xs font-medium px-2.5 py-1 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-colors"
-                        >
+                        </Button>
+                        <Button variant="ghost-danger" size="sm" onClick={() => setConfirmDelete(match)}>
                           Delete
-                        </button>
+                        </Button>
                       </div>
                     </div>
 
                     <p className="text-xs text-[var(--text-muted)]">{formatMatchDate(match.matchDate)}</p>
 
                     <div className="flex flex-wrap items-center gap-3 pt-1">
+                      {/* Betting toggle: dynamic color (yellow=open, muted=closed), no Button variant — left as raw button */}
                       {canToggleBetting && (
                         <button
                           onClick={() => handleToggleBetting(match)}
@@ -1077,6 +1009,7 @@ function GroupAdminContent() {
                     </div>
 
                     <div className="flex items-center gap-2 flex-wrap">
+                      {/* Inline result select: px-3 py-1.5 sizing, no label, used in flex row — left as raw select */}
                       <select
                         value={displayedResult}
                         onChange={(e) =>
@@ -1090,17 +1023,17 @@ function GroupAdminContent() {
                         {match.drawAllowed && <option value="draw">Draw</option>}
                         <option value="abandoned">Abandoned</option>
                       </select>
-                      <button
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        disabled={!displayedResult}
+                        loading={declaring[match.id]}
                         onClick={() => handleDeclareResult(match)}
-                        disabled={!displayedResult || declaring[match.id]}
-                        className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-green-500 hover:bg-green-600 disabled:opacity-40 disabled:cursor-not-allowed text-white transition-colors"
                       >
-                        {declaring[match.id]
-                          ? 'Saving...'
-                          : match.status === 'completed' || match.status === 'abandoned'
+                        {match.status === 'completed' || match.status === 'abandoned'
                           ? 'Update Result'
                           : 'Confirm'}
-                      </button>
+                      </Button>
                     </div>
 
                     {(match.status === 'completed' || match.status === 'abandoned') && (
@@ -1108,7 +1041,7 @@ function GroupAdminContent() {
                         Updating a declared match or member bet will roll back old points and settle again using the latest data.
                       </p>
                     )}
-                  </div>
+                  </Card>
                 );
               })}
             </div>
@@ -1126,37 +1059,3 @@ export default function GroupAdminPage() {
     </ProtectedRoute>
   );
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
+import { Settings } from 'lucide-react';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import ThemeSwitcher from '@/components/ThemeSwitcher';
 import { useAuth } from '@/lib/AuthContext';
@@ -13,6 +14,7 @@ import type { Group, GroupMember } from '@/lib/groups';
 import { getBetsForGroup, getBetsForMatch, getMatches, getUserBetsForGroup, upsertUserBetForMatch } from '@/lib/matches';
 import type { Match, Bet } from '@/lib/matches';
 import { copyText, getInviteLink } from '@/lib/share';
+import { Spinner, Button, Badge, Card, SectionHeader, PageHeader, Avatar, matchStatusVariant, betStatusVariant } from '@/components/ui';
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -44,30 +46,9 @@ function formatMatchDate(ts: Match['matchDate']) {
 
 // ── sub-components ────────────────────────────────────────────────────────────
 
-function StatusBadge({ status }: { status: Match['status'] }) {
-  const styles: Record<Match['status'], string> = {
-    live: 'bg-green-500/20 text-green-400',
-    upcoming: 'bg-yellow-500/20 text-yellow-400',
-    completed: 'bg-slate-600/40 text-[var(--text-muted)]',
-    abandoned: 'bg-slate-600/40 text-[var(--text-muted)]',
-  };
-  return (
-    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${styles[status]}`}>
-      {status.charAt(0).toUpperCase() + status.slice(1)}
-    </span>
-  );
-}
-
 const BET_STAKE = 1000;
 
 type Outcome = 'team_a' | 'team_b' | 'draw';
-
-const BET_STATUS_STYLES: Record<Bet['status'], string> = {
-  pending: 'bg-yellow-500/20 text-yellow-400',
-  won: 'bg-green-500/20 text-green-400',
-  lost: 'bg-red-500/20 text-red-400',
-  refunded: 'bg-slate-600/40 text-[var(--text-muted)]',
-};
 
 function getBetActionErrorMessage(err: unknown): string {
   if ((err as { code?: string })?.code === 'permission-denied') {
@@ -172,16 +153,16 @@ function MatchCard({ match, groupId, myBet, bets, memberNames, currentUserId, on
   }
 
   return (
-    <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-[var(--card-padding)] flex flex-col gap-3">
+    <Card variant="default" className="flex flex-col gap-3">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <span className="font-semibold text-[var(--text-primary)]">
           {match.teamA} <span className="text-[var(--text-muted)]">vs</span> {match.teamB}
         </span>
         <div className="flex items-center gap-2">
-          <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-[var(--bg-input)] text-[var(--text-secondary)]">
-            {match.format}
-          </span>
-          <StatusBadge status={match.status} />
+          <Badge variant="format">{match.format}</Badge>
+          <Badge variant={matchStatusVariant(match.status)}>
+            {match.status.charAt(0).toUpperCase() + match.status.slice(1)}
+          </Badge>
         </div>
       </div>
       <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -191,9 +172,9 @@ function MatchCard({ match, groupId, myBet, bets, memberNames, currentUserId, on
             <span className="text-xs text-[var(--text-secondary)]">
               Picked: <span className="font-medium text-[var(--text-primary)]">{pickedLabel}</span>
             </span>
-            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${BET_STATUS_STYLES[myBet.status]}`}>
+            <Badge variant={betStatusVariant(myBet.status)}>
               {myBet.status.charAt(0).toUpperCase() + myBet.status.slice(1)}
-            </span>
+            </Badge>
             {myBet.pointsDelta !== null && myBet.status === 'won' && (
               <span className="text-xs font-semibold text-green-400">+{myBet.pointsDelta} pts</span>
             )}
@@ -201,32 +182,35 @@ function MatchCard({ match, groupId, myBet, bets, memberNames, currentUserId, on
               <span className="text-xs font-semibold text-red-400">{myBet.pointsDelta} pts</span>
             )}
             {canChangeBet && (
-              <button
+              <Button
                 type="button"
+                variant="secondary"
+                size="sm"
                 onClick={() => setEditingBet(true)}
-                className="text-xs font-medium px-3 py-1.5 rounded-lg bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] border border-[var(--border)] transition-colors"
               >
                 Change bet
-              </button>
+              </Button>
             )}
           </div>
         ) : canPlaceInlineBet ? (
-          <button
+          <Button
             type="button"
+            variant="primary"
+            size="sm"
             onClick={() => {
               setSelectedOutcome(null);
               setEditingBet(true);
             }}
-            className="text-xs font-semibold bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded-lg transition-colors"
           >
             Place Bet
-          </button>
+          </Button>
         ) : null}
       </div>
       {editingBet && (
         <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-input)] px-3 py-3 space-y-3">
           <p className="text-xs font-semibold text-[var(--text-secondary)]">{myBet ? 'Change your bet' : 'Place your bet'}</p>
           <div className={`grid gap-2 ${match.drawAllowed ? 'grid-cols-3' : 'grid-cols-2'}`}>
+            {/* Outcome toggles: unique 3-way colored selection (blue/slate/red per team), no Button variant — left as raw buttons */}
             <button
               type="button"
               onClick={() => setSelectedOutcome('team_a')}
@@ -263,24 +247,29 @@ function MatchCard({ match, groupId, myBet, bets, memberNames, currentUserId, on
               {match.teamB}
             </button>
           </div>
-          <button
+          <Button
             type="button"
+            variant="primary"
+            size="lg"
+            loading={updatingBet}
+            disabled={!selectedOutcome}
             onClick={handleChangeBet}
-            disabled={!selectedOutcome || updatingBet}
-            className="w-full rounded-lg bg-green-500 hover:bg-green-600 disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-semibold py-2.5 transition-colors"
+            className="w-full"
           >
             {updatingBet ? 'Saving…' : myBet ? 'Confirm change' : 'Confirm bet'}
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="ghost"
+            size="md"
             onClick={() => {
               setEditingBet(false);
               setSelectedOutcome((myBet?.pickedOutcome as Outcome | undefined) ?? null);
             }}
-            className="w-full text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+            className="w-full"
           >
             Cancel
-          </button>
+          </Button>
         </div>
       )}
       {(bets.length > 0 || hasSettledSummary) && (
@@ -289,6 +278,7 @@ function MatchCard({ match, groupId, myBet, bets, memberNames, currentUserId, on
             <div>
               <p className="text-xs font-semibold text-[var(--text-secondary)]">Match summary</p>
               <div className="mt-2 flex flex-wrap items-center gap-2">
+                {/* Result/summary chips: dynamic color based on outcome, not fixed Badge variants — left as raw spans */}
                 <span className="rounded-full bg-[var(--bg-card)] px-2.5 py-1 text-xs font-medium text-[var(--text-primary)]">
                   Result: {resultLabel}
                 </span>
@@ -331,6 +321,7 @@ function MatchCard({ match, groupId, myBet, bets, memberNames, currentUserId, on
                         const isMe = bet.userId === currentUserId;
                         const displayName = memberNames[bet.userId] ?? 'Unknown';
                         return (
+                          // Participant chips: color is dynamic (isMe check), not a fixed Badge variant — left as raw spans
                           <span
                             key={bet.id}
                             className={`rounded-full px-2 py-0.5 ${
@@ -358,6 +349,7 @@ function MatchCard({ match, groupId, myBet, bets, memberNames, currentUserId, on
               ) : (
                 <div className="mt-2 flex flex-wrap gap-2">
                   {pointSummary.map((entry) => (
+                    // Points chips: color is dynamic (pointsDelta sign), not a fixed Badge variant — left as raw spans
                     <span
                       key={entry.id}
                       className={`rounded-full px-2.5 py-1 text-xs font-medium ${
@@ -377,9 +369,10 @@ function MatchCard({ match, groupId, myBet, bets, memberNames, currentUserId, on
           )}
         </div>
       )}
-    </div>
+    </Card>
   );
 }
+
 interface PastMatchCardProps {
   match: Match;
   bets: Bet[];
@@ -401,6 +394,7 @@ function getBetChipLabel(bet: Bet) {
 }
 
 function getBetChipClasses(status: Bet['status']) {
+  // These chips include a border which Badge doesn't support — left as raw class strings
   if (status === 'won') {
     return 'bg-green-500/15 text-green-400 border border-green-500/25';
   }
@@ -428,16 +422,16 @@ function PastMatchCard({ match, bets, memberNames, loading }: PastMatchCardProps
   });
 
   return (
-    <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-[var(--card-padding)] flex flex-col gap-3">
+    <Card variant="default" className="flex flex-col gap-3">
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <span className="font-semibold text-[var(--text-primary)]">
           {match.teamA} <span className="text-[var(--text-muted)]">vs</span> {match.teamB}
         </span>
         <div className="flex items-center gap-2">
-          <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-[var(--bg-input)] text-[var(--text-secondary)]">
-            {match.format}
-          </span>
-          <StatusBadge status={match.status} />
+          <Badge variant="format">{match.format}</Badge>
+          <Badge variant={matchStatusVariant(match.status)}>
+            {match.status.charAt(0).toUpperCase() + match.status.slice(1)}
+          </Badge>
         </div>
       </div>
 
@@ -471,15 +465,7 @@ function PastMatchCard({ match, bets, memberNames, loading }: PastMatchCardProps
           })}
         </div>
       )}
-    </div>
-  );
-}
-
-function EmptyCard({ message }: { message: string }) {
-  return (
-    <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-[var(--card-padding)] text-[var(--text-muted)] text-sm text-center">
-      {message}
-    </div>
+    </Card>
   );
 }
 
@@ -642,6 +628,7 @@ function GroupDashboardContent() {
       };
     });
   }
+
   async function copyInviteLink() {
     if (!group) return;
     const link = getInviteLink(group.inviteCode);
@@ -655,14 +642,7 @@ function GroupDashboardContent() {
 
   // ── loading ────────────────────────────────────────────────────────────────
   if (loading) {
-    return (
-      <div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center">
-        <svg className="animate-spin h-10 w-10 text-green-500" fill="none" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-        </svg>
-      </div>
-    );
+    return <Spinner size="lg" fullPage />;
   }
 
   // ── access denied ──────────────────────────────────────────────────────────
@@ -700,80 +680,49 @@ function GroupDashboardContent() {
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
-      {/* Navbar */}
-      <header className="bg-[var(--bg-card)] border-b border-[var(--border)] px-6 py-4">
-        <div className="max-w-5xl mx-auto flex items-center justify-between gap-4">
-          {/* Left: back + group name */}
-          <div className="flex items-center gap-3 min-w-0">
-            <Link
-              href="/groups"
-              className="shrink-0 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
-              title="Back to My Groups"
-            >
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-              </svg>
-            </Link>
-            <div className="min-w-0">
-              <Link href="/" className="text-base font-bold text-green-500 truncate block hover:text-green-400 transition-colors">🏆 WhoWins</Link>
-              {group && (
-                <span className="text-xs text-[var(--text-secondary)] truncate block">{group.name}</span>
-              )}
-            </div>
-          </div>
-
-          {/* Right: admin actions + theme + avatar + sign out */}
-          <div className="flex items-center gap-2 shrink-0">
+      <PageHeader
+        backHref="/groups"
+        subtitle={group?.name}
+        maxWidth="5xl"
+        actions={
+          <>
             {isAdmin && (
               <>
-                <Link
-                  href={`/groups/${groupId}/admin`}
-                  className="text-xs font-semibold bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] px-3 py-1.5 rounded-lg border border-[var(--border)] transition-colors"
-                >
+                <Button variant="secondary" size="sm" href={`/groups/${groupId}/admin`}>
                   Admin Panel
-                </Link>
+                </Button>
+                {/* Settings icon link: icon-only nav link, no Button variant — left as raw Link with lucide icon */}
                 <Link
                   href={`/groups/${groupId}/manage`}
                   title="Group Settings"
                   className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
                 >
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
+                  <Settings className="h-5 w-5" />
                 </Link>
               </>
             )}
             <ThemeSwitcher />
             {userProfile && (
               <div className="flex items-center gap-2">
-                <div
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold shrink-0"
-                  style={{ backgroundColor: userProfile.avatarColor }}
-                >
-                  {userProfile.displayName.charAt(0).toUpperCase()}
-                </div>
+                <Avatar name={userProfile.displayName} color={userProfile.avatarColor} size="md" />
               </div>
             )}
-            <button
-              onClick={handleLogout}
-              className="text-sm text-[var(--text-secondary)] hover:text-red-400 transition-colors"
-            >
+            <Button variant="ghost-warning" size="md" onClick={handleLogout}>
               Sign out
-            </button>
-          </div>
-        </div>
-      </header>
+            </Button>
+          </>
+        }
+      />
 
       {/* Content */}
       <main className="max-w-5xl mx-auto px-6 py-8 space-y-8">
         {/* Live & Today */}
         <section>
-          <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-3">
-            Live &amp; Today&apos;s Matches
-          </h2>
+          <SectionHeader title="Live &amp; Today's Matches" mb="mb-3" />
           {todayMatches.length === 0 ? (
-            <EmptyCard message="No matches today" />
+            <Card variant="default" className="text-[var(--text-muted)] text-sm text-center">
+              No matches today
+            </Card>
           ) : (
             <div className="space-y-3">
               {todayMatches.map((m) => (
@@ -794,9 +743,11 @@ function GroupDashboardContent() {
 
         {/* Upcoming */}
         <section>
-          <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-3">Upcoming Matches</h2>
+          <SectionHeader title="Upcoming Matches" mb="mb-3" />
           {upcomingMatches.length === 0 ? (
-            <EmptyCard message="No upcoming matches" />
+            <Card variant="default" className="text-[var(--text-muted)] text-sm text-center">
+              No upcoming matches
+            </Card>
           ) : (
             <div className="space-y-3">
               {upcomingMatches.map((m) => (
@@ -817,9 +768,11 @@ function GroupDashboardContent() {
 
         {/* Past */}
         <section>
-          <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-3">Past Matches</h2>
+          <SectionHeader title="Past Matches" mb="mb-3" />
           {pastMatches.length === 0 ? (
-            <EmptyCard message="No past matches" />
+            <Card variant="default" className="text-[var(--text-muted)] text-sm text-center">
+              No past matches
+            </Card>
           ) : (
             <div className="space-y-3">
               {pastMatches.map((m) => (
@@ -837,8 +790,8 @@ function GroupDashboardContent() {
 
         {/* Leaderboard */}
         <section>
-          <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-[var(--card-padding)]">
-            <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Leaderboard</h2>
+          <Card variant="default">
+            <SectionHeader title="Leaderboard" mb="mb-4" />
             {members.length === 0 ? (
               <p className="text-[var(--text-muted)] text-sm text-center">No members yet</p>
             ) : (
@@ -856,20 +809,13 @@ function GroupDashboardContent() {
                     >
                       <div className="flex items-center gap-3">
                         <span className="text-[var(--text-muted)] text-sm w-5 text-right">{i + 1}</span>
-                        <div
-                          className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0"
-                          style={{ backgroundColor: m.avatarColor }}
-                        >
-                          {m.displayName.charAt(0).toUpperCase()}
-                        </div>
+                        <Avatar name={m.displayName} color={m.avatarColor} size="sm" />
                         <span className="text-sm text-[var(--text-primary)]">{m.displayName}</span>
                         {isMe && (
                           <span className="text-xs text-green-500 font-medium">(you)</span>
                         )}
                         {m.role === 'admin' && (
-                          <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-400">
-                            Admin
-                          </span>
+                          <Badge variant="role-admin" shape="tag">Admin</Badge>
                         )}
                       </div>
                       <span className="text-sm font-semibold text-green-400">
@@ -880,24 +826,22 @@ function GroupDashboardContent() {
                 })}
               </ol>
             )}
-          </div>
+          </Card>
         </section>
 
         {/* Invite */}
         <section>
-          <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-[var(--card-padding)] space-y-4">
-            <h2 className="text-lg font-semibold text-[var(--text-primary)]">Invite Friends</h2>
+          <Card variant="default" className="space-y-4">
+            <SectionHeader title="Invite Friends" mb="mb-0" />
             <div className="flex items-center gap-2">
               <code className="flex-1 text-xs bg-[var(--bg-input)] border border-[var(--border)] rounded-lg px-3 py-2 text-[var(--text-secondary)] truncate">
                 {inviteLink}
               </code>
-              <button
-                onClick={copyInviteLink}
-                className="shrink-0 text-xs font-semibold bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] border border-[var(--border)] text-[var(--text-primary)] px-3 py-2 rounded-lg transition-colors"
-              >
+              <Button variant="secondary" size="md" onClick={copyInviteLink} className="shrink-0">
                 Copy Link
-              </button>
+              </Button>
             </div>
+            {/* WhatsApp link: uses brand color #25D366, no matching Button variant — left as raw <a> */}
             <a
               href={`https://wa.me/?text=${encodeURIComponent(`Join my WhoWins group! Click here: ${inviteLink}`)}`}
               target="_blank"
@@ -909,7 +853,7 @@ function GroupDashboardContent() {
               </svg>
               Share on WhatsApp
             </a>
-          </div>
+          </Card>
         </section>
       </main>
     </div>
@@ -923,23 +867,3 @@ export default function GroupDashboardPage() {
     </ProtectedRoute>
   );
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

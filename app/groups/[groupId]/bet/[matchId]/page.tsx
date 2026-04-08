@@ -2,14 +2,15 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
 import toast from 'react-hot-toast';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import ThemeSwitcher from '@/components/ThemeSwitcher';
 import { useAuth } from '@/lib/AuthContext';
 import { getMatchById, getUserBetForMatch, upsertUserBetForMatch } from '@/lib/matches';
 import type { Match, Bet } from '@/lib/matches';
 import { getUserGroupMember } from '@/lib/groups';
 import type { GroupMember } from '@/lib/groups';
+import { Spinner, Button, Badge, Card, PageHeader, CenteredCard, matchStatusVariant, betStatusVariant } from '@/components/ui';
 
 const STAKE = 1000;
 type Outcome = 'team_a' | 'team_b' | 'draw';
@@ -26,42 +27,10 @@ function formatMatchDate(ts: Match['matchDate']) {
   });
 }
 
-function StatusBadge({ status }: { status: Match['status'] }) {
-  const styles: Record<Match['status'], string> = {
-    live: 'bg-green-500/20 text-green-400',
-    upcoming: 'bg-yellow-500/20 text-yellow-400',
-    completed: 'bg-slate-600/40 text-[var(--text-muted)]',
-    abandoned: 'bg-slate-600/40 text-[var(--text-muted)]',
-  };
-  return (
-    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${styles[status]}`}>
-      {status.charAt(0).toUpperCase() + status.slice(1)}
-    </span>
-  );
-}
-
-
-function BackLink({ groupId }: { groupId: string }) {
-  return (
-    <Link
-      href={`/groups/${groupId}`}
-      className="inline-flex items-center gap-1.5 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
-    >
-      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-      </svg>
-      Back to Group
-    </Link>
-  );
-}
-
-function InfoScreen({ groupId, message }: { groupId: string; message: string }) {
-  return (
-    <div className="min-h-screen bg-[var(--bg-primary)] flex flex-col items-center justify-center gap-4 px-4">
-      <p className="text-[var(--text-secondary)] text-base">{message}</p>
-      <BackLink groupId={groupId} />
-    </div>
-  );
+function outcomeLabel(outcome: Bet['pickedOutcome'], match: Match): string {
+  if (outcome === 'team_a') return match.teamA;
+  if (outcome === 'team_b') return match.teamB;
+  return 'Draw';
 }
 
 function getBetActionErrorMessage(err: unknown): string {
@@ -71,6 +40,7 @@ function getBetActionErrorMessage(err: unknown): string {
   return err instanceof Error ? err.message : 'Failed to place bet';
 }
 
+// OutcomeButton: 3-way blue/slate/red dynamic colors — left as local component
 function OutcomeButton({
   label,
   value,
@@ -138,9 +108,7 @@ function BetContent() {
         setLoadError('Failed to load match data. Please try again.');
       })
       .finally(() => {
-        if (!cancelled) {
-          setLoadingData(false);
-        }
+        if (!cancelled) setLoadingData(false);
       });
     return () => { cancelled = true; };
   }, [user, matchId, groupId]);
@@ -160,74 +128,145 @@ function BetContent() {
     }
   }
 
-  // ── load error ───────────────────────────────────────────────────────────
-  if (loadError) {
-    return <InfoScreen groupId={groupId} message={loadError} />;
-  }
-
   // ── loading ──────────────────────────────────────────────────────────────
   if (loadingData || match === undefined || existingBet === undefined || member === undefined) {
+    return <Spinner size="lg" fullPage />;
+  }
+
+  // ── load error ───────────────────────────────────────────────────────────
+  if (loadError) {
     return (
-      <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
-        <div className="max-w-lg mx-auto px-6 py-8 space-y-6">
-          <BackLink groupId={groupId} />
-          <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-[var(--card-padding)] space-y-4 animate-pulse">
-            <div className="flex items-center justify-between gap-3">
-              <div className="h-7 w-56 rounded bg-[var(--bg-input)]" />
-              <div className="h-6 w-24 rounded bg-[var(--bg-input)]" />
-            </div>
-            <div className="h-4 w-36 rounded bg-[var(--bg-input)]" />
-            <div className="h-4 w-28 rounded bg-[var(--bg-input)]" />
-          </div>
-          <div className="space-y-3">
-            <div className="h-4 w-28 rounded bg-[var(--bg-input)] animate-pulse" />
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              <div className="h-16 rounded-xl bg-[var(--bg-input)] animate-pulse" />
-              <div className="h-16 rounded-xl bg-[var(--bg-input)] animate-pulse" />
-              <div className="hidden h-16 rounded-xl bg-[var(--bg-input)] animate-pulse sm:block" />
-            </div>
-          </div>
-        </div>
-      </div>
+      <CenteredCard maxWidth="max-w-sm">
+        <Card variant="modal" padding="p-8" className="text-center space-y-4">
+          <p className="text-red-400 font-semibold">{loadError}</p>
+          <Button variant="primary" size="md" href={`/groups/${groupId}`}>
+            Back to Group
+          </Button>
+        </Card>
+      </CenteredCard>
     );
   }
 
   // ── not a member ─────────────────────────────────────────────────────────
   if (member === null) {
-    return <InfoScreen groupId={groupId} message="Access denied — you are not a member of this group." />;
+    return (
+      <CenteredCard maxWidth="max-w-sm">
+        <Card variant="modal" padding="p-8" className="text-center space-y-4">
+          <p className="text-red-400 font-semibold">Access denied</p>
+          <p className="text-sm text-[var(--text-secondary)]">You are not a member of this group.</p>
+          <Button variant="primary" size="md" href="/groups">
+            My Groups
+          </Button>
+        </Card>
+      </CenteredCard>
+    );
   }
 
   // ── match not found ──────────────────────────────────────────────────────
   if (match === null) {
-    return <InfoScreen groupId={groupId} message="Match not found." />;
+    return (
+      <CenteredCard maxWidth="max-w-sm">
+        <Card variant="modal" padding="p-8" className="text-center space-y-4">
+          <p className="text-[var(--text-secondary)]">Match not found.</p>
+          <Button variant="primary" size="md" href={`/groups/${groupId}`}>
+            Back to Group
+          </Button>
+        </Card>
+      </CenteredCard>
+    );
   }
 
-  // ── betting closed ───────────────────────────────────────────────────────
-  if (match.status !== 'upcoming' && match.status !== 'live') {
-    return <InfoScreen groupId={groupId} message="Betting is closed for this match." />;
-  }
+  const bettingLocked = match.status !== 'upcoming' && match.status !== 'live';
+  const bettingClosed = !match.bettingOpen;
 
-  if (!match.bettingOpen) {
-    return <InfoScreen groupId={groupId} message="Betting is currently closed for this match." />;
+  // ── shared header actions ─────────────────────────────────────────────────
+  const headerActions = <ThemeSwitcher />;
+
+  // ── locked / closed view ─────────────────────────────────────────────────
+  if (bettingLocked || bettingClosed) {
+    return (
+      <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
+        <PageHeader
+          backHref={`/groups/${groupId}`}
+          subtitle="Place Bet"
+          maxWidth="lg"
+          actions={headerActions}
+        />
+        <main className="max-w-lg mx-auto px-6 py-8 space-y-4">
+          {/* Match info */}
+          <Card variant="default" className="space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h1 className="text-xl font-bold text-[var(--text-primary)]">
+                {match.teamA} <span className="text-[var(--text-muted)]">vs</span> {match.teamB}
+              </h1>
+              <div className="flex items-center gap-2">
+                <Badge variant="format">{match.format}</Badge>
+                <Badge variant={matchStatusVariant(match.status)}>
+                  {match.status.charAt(0).toUpperCase() + match.status.slice(1)}
+                </Badge>
+              </div>
+            </div>
+            <p className="text-xs text-[var(--text-muted)]">{formatMatchDate(match.matchDate)}</p>
+          </Card>
+
+          {/* Existing bet (read-only) */}
+          {existingBet ? (
+            <Card variant="default" className="space-y-2">
+              <p className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wide">Your bet</p>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-[var(--text-secondary)]">
+                  Picked: <span className="font-medium text-[var(--text-primary)]">{outcomeLabel(existingBet.pickedOutcome, match)}</span>
+                </span>
+                <Badge variant={betStatusVariant(existingBet.status)}>
+                  {existingBet.status.charAt(0).toUpperCase() + existingBet.status.slice(1)}
+                </Badge>
+              </div>
+              <p className="text-sm text-[var(--text-secondary)]">
+                Stake: <span className="font-medium text-[var(--text-primary)]">{existingBet.stake} pts</span>
+              </p>
+            </Card>
+          ) : (
+            <Card variant="default" className="text-center text-sm text-[var(--text-muted)] py-2">
+              You did not place a bet on this match.
+            </Card>
+          )}
+
+          {/* Locked notice */}
+          <p className="text-center text-sm text-[var(--text-muted)]">
+            {bettingLocked ? 'Betting is closed — this match has already started or finished.' : 'Betting is currently closed for this match.'}
+          </p>
+
+          <Button variant="secondary" size="md" href={`/groups/${groupId}`} className="w-full">
+            Back to Group
+          </Button>
+        </main>
+      </div>
+    );
   }
 
   // ── main betting UI ──────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
-      <div className="max-w-lg mx-auto px-6 py-8 space-y-6">
-        <BackLink groupId={groupId} />
+      <PageHeader
+        backHref={`/groups/${groupId}`}
+        subtitle="Place Bet"
+        maxWidth="lg"
+        actions={headerActions}
+      />
 
-        {/* Match info card */}
-        <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-[var(--card-padding)] space-y-3">
+      <main className="max-w-lg mx-auto px-6 py-8 space-y-6">
+
+        {/* Match info */}
+        <Card variant="default" className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h1 className="text-xl font-bold text-[var(--text-primary)]">
               {match.teamA} <span className="text-[var(--text-muted)]">vs</span> {match.teamB}
             </h1>
             <div className="flex items-center gap-2">
-              <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-[var(--bg-input)] text-[var(--text-secondary)]">
-                {match.format}
-              </span>
-              <StatusBadge status={match.status} />
+              <Badge variant="format">{match.format}</Badge>
+              <Badge variant={matchStatusVariant(match.status)}>
+                {match.status.charAt(0).toUpperCase() + match.status.slice(1)}
+              </Badge>
             </div>
           </div>
           <p className="text-xs text-[var(--text-muted)]">{formatMatchDate(match.matchDate)}</p>
@@ -236,18 +275,24 @@ function BetContent() {
               Stake: <span className="text-green-400 font-semibold">{STAKE} pts</span>
             </p>
           </div>
-        </div>
+        </Card>
 
+        {/* Existing bet */}
         {existingBet && (
-          <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4 space-y-2">
-            <p className="text-xs font-semibold text-[var(--text-secondary)]">Current bet</p>
-            <div className="text-sm text-[var(--text-secondary)]">
-              Picked: <span className="font-medium text-[var(--text-primary)]">{existingBet.pickedOutcome === 'team_a' ? match.teamA : existingBet.pickedOutcome === 'team_b' ? match.teamB : 'Draw'}</span>
+          <Card variant="default" className="space-y-2">
+            <p className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wide">Current bet</p>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-[var(--text-secondary)]">
+                Picked: <span className="font-medium text-[var(--text-primary)]">{outcomeLabel(existingBet.pickedOutcome, match)}</span>
+              </span>
+              <Badge variant={betStatusVariant(existingBet.status)}>
+                {existingBet.status.charAt(0).toUpperCase() + existingBet.status.slice(1)}
+              </Badge>
             </div>
-            <div className="text-sm text-[var(--text-secondary)]">
+            <p className="text-sm text-[var(--text-secondary)]">
               Stake: <span className="font-medium text-[var(--text-primary)]">{existingBet.stake} pts</span>
-            </div>
-          </div>
+            </p>
+          </Card>
         )}
 
         {/* Outcome picker */}
@@ -282,25 +327,17 @@ function BetContent() {
 
         {/* Confirm button */}
         {selected && (
-          <button
+          <Button
+            variant="primary"
+            size="lg"
+            loading={confirming}
             onClick={handleConfirm}
-            disabled={confirming}
-            className="w-full flex items-center justify-center gap-2 rounded-xl bg-green-500 hover:bg-green-600 disabled:opacity-60 disabled:cursor-not-allowed px-4 py-3 font-semibold text-white transition-colors"
+            className="w-full"
           >
-            {confirming ? (
-              <>
-                <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                </svg>
-                Placing bet…
-              </>
-            ) : (
-              existingBet ? 'Update Bet' : 'Confirm Bet'
-            )}
-          </button>
+            {existingBet ? 'Update Bet' : 'Confirm Bet'}
+          </Button>
         )}
-      </div>
+      </main>
     </div>
   );
 }
@@ -312,12 +349,3 @@ export default function GroupBetPage() {
     </ProtectedRoute>
   );
 }
-
-
-
-
-
-
-
-
-

@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { useAuth } from '@/lib/AuthContext';
 import { getGroupByInviteCode, isGroupMember, joinGroup } from '@/lib/groups';
 import type { Group } from '@/lib/groups';
+import { Spinner, Button, Card, CenteredCard } from '@/components/ui';
 
 type PageState = 'loading' | 'invalid' | 'unauthenticated' | 'already-member' | 'join';
 
@@ -59,34 +59,24 @@ export default function JoinPage() {
 
   // ── Full screen spinner (auth + initial load) ─────────────────────────────
   if (pageState === 'loading') {
-    return (
-      <div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center">
-        <svg className="animate-spin h-10 w-10 text-green-500" fill="none" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-        </svg>
-      </div>
-    );
+    return <Spinner size="lg" fullPage />;
   }
 
   // ── Invalid invite ────────────────────────────────────────────────────────
   if (pageState === 'invalid') {
     return (
-      <div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center px-4">
-        <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-8 max-w-sm w-full text-center space-y-4">
+      <CenteredCard maxWidth="max-w-sm">
+        <Card variant="modal" padding="p-8" className="text-center space-y-4">
           <div className="text-4xl">🔗</div>
           <h2 className="text-lg font-bold text-[var(--text-primary)]">Invalid invite link</h2>
           <p className="text-sm text-[var(--text-secondary)]">
             This invite link is invalid or has expired.
           </p>
-          <Link
-            href="/groups"
-            className="inline-block bg-green-500 hover:bg-green-600 text-white font-semibold px-5 py-2 rounded-lg transition-colors text-sm"
-          >
+          <Button variant="primary" size="md" href="/groups">
             Go to My Groups
-          </Link>
-        </div>
-      </div>
+          </Button>
+        </Card>
+      </CenteredCard>
     );
   }
 
@@ -94,8 +84,8 @@ export default function JoinPage() {
   if (pageState === 'unauthenticated') {
     const redirectPath = `/join/${inviteCode}`;
     return (
-      <div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center px-4">
-        <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-8 max-w-sm w-full text-center space-y-5">
+      <CenteredCard maxWidth="max-w-sm">
+        <Card variant="modal" padding="p-8" className="text-center space-y-5">
           <div className="text-4xl">🏆</div>
           <div>
             <h2 className="text-xl font-bold text-[var(--text-primary)]">{group?.name}</h2>
@@ -104,47 +94,39 @@ export default function JoinPage() {
             </p>
           </div>
           <div className="flex flex-col gap-3">
-            <Link
-              href={`/login?redirect=${encodeURIComponent(redirectPath)}`}
-              className="w-full inline-flex items-center justify-center bg-green-500 hover:bg-green-600 text-white font-semibold px-5 py-2.5 rounded-lg transition-colors text-sm"
-            >
+            <Button variant="primary" size="lg" href={`/login?redirect=${encodeURIComponent(redirectPath)}`} className="w-full">
               Sign in to join
-            </Link>
-            <Link
-              href={`/register?redirect=${encodeURIComponent(redirectPath)}`}
-              className="w-full inline-flex items-center justify-center bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] font-semibold px-5 py-2.5 rounded-lg transition-colors text-sm border border-[var(--border)]"
-            >
+            </Button>
+            <Button variant="secondary" size="lg" href={`/register?redirect=${encodeURIComponent(redirectPath)}`} className="w-full">
               Create account
-            </Link>
+            </Button>
           </div>
-        </div>
-      </div>
+        </Card>
+      </CenteredCard>
     );
   }
 
   // ── Already a member ──────────────────────────────────────────────────────
   if (pageState === 'already-member') {
     return (
-      <div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center px-4">
-        <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-8 max-w-sm w-full text-center space-y-4">
+      <CenteredCard maxWidth="max-w-sm">
+        <Card variant="modal" padding="p-8" className="text-center space-y-4">
+          {/* ✓ checkmark: text-green-400 is brand accent text color, correct semantic use */}
           <div className="text-green-400 text-4xl">✓</div>
           <h2 className="text-lg font-bold text-[var(--text-primary)]">You&apos;re already in this group!</h2>
           <p className="text-sm text-[var(--text-secondary)]">{group?.name}</p>
-          <Link
-            href={`/groups/${group?.groupId}`}
-            className="inline-block bg-green-500 hover:bg-green-600 text-white font-semibold px-5 py-2 rounded-lg transition-colors text-sm"
-          >
+          <Button variant="primary" size="md" href={`/groups/${group?.groupId}`}>
             Go to Group
-          </Link>
-        </div>
-      </div>
+          </Button>
+        </Card>
+      </CenteredCard>
     );
   }
 
   // ── Join confirmation ─────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center px-4">
-      <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-8 max-w-sm w-full text-center space-y-5">
+    <CenteredCard maxWidth="max-w-sm">
+      <Card variant="modal" padding="p-8" className="text-center space-y-5">
         <div className="text-4xl">🏆</div>
         <div>
           <h2 className="text-2xl font-bold text-[var(--text-primary)]">{group?.name}</h2>
@@ -152,24 +134,16 @@ export default function JoinPage() {
             You&apos;ve been invited to join this group
           </p>
         </div>
-        <button
+        <Button
+          variant="primary"
+          size="lg"
+          loading={joining}
           onClick={handleJoin}
-          disabled={joining}
-          className="w-full flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold px-5 py-2.5 rounded-lg transition-colors text-sm"
+          className="w-full"
         >
-          {joining ? (
-            <>
-              <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-              </svg>
-              Joining…
-            </>
-          ) : (
-            'Join Group'
-          )}
-        </button>
-      </div>
-    </div>
+          Join Group
+        </Button>
+      </Card>
+    </CenteredCard>
   );
 }

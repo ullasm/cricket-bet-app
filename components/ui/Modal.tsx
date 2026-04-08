@@ -1,0 +1,77 @@
+'use client';
+
+import type { FC, ReactNode } from 'react';
+import { useEffect } from 'react';
+import { Card } from './Card';
+
+type MaxWidth = 'sm' | 'md' | 'lg' | 'xl' | '4xl';
+
+const maxWidthClasses: Record<MaxWidth, string> = {
+  sm:  'max-w-sm',
+  md:  'max-w-md',
+  lg:  'max-w-lg',
+  xl:  'max-w-xl',
+  '4xl': 'max-w-4xl',
+};
+
+interface ModalProps {
+  open: boolean;
+  onClose?: () => void;
+  maxWidth?: MaxWidth;
+  /** Optional title rendered at the top of the modal card */
+  title?: ReactNode;
+  /** Pass py-6 or similar if the modal needs more vertical padding */
+  padding?: string;
+  /** Allow scrolling inside the modal body (max-h-[90vh] overflow-y-auto) */
+  scrollable?: boolean;
+  children: ReactNode;
+  className?: string;
+}
+
+export const Modal: FC<ModalProps> = ({
+  open,
+  onClose,
+  maxWidth = 'md',
+  title,
+  padding,
+  scrollable = false,
+  children,
+  className = '',
+}) => {
+  // Close on Escape key
+  useEffect(() => {
+    if (!open || !onClose) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 py-6"
+      onClick={onClose}
+    >
+      <Card
+        variant="modal"
+        padding={padding ?? 'p-6'}
+        className={`w-full ${maxWidthClasses[maxWidth]} ${scrollable ? 'max-h-[90vh] overflow-y-auto' : ''} ${className}`}
+        onClick={(e: React.MouseEvent) => e.stopPropagation()}
+      >
+        {title && (
+          <div className="mb-4">
+            {typeof title === 'string' ? (
+              <h3 className="font-semibold text-[var(--text-primary)]">{title}</h3>
+            ) : (
+              title
+            )}
+          </div>
+        )}
+        {children}
+      </Card>
+    </div>
+  );
+};

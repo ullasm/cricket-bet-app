@@ -6,17 +6,7 @@ import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { loginUser, signInWithGoogle } from '@/lib/auth';
 import { useAuth } from '@/lib/AuthContext';
-
-function Spinner() {
-  return (
-    <div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center">
-      <svg className="animate-spin h-10 w-10 text-green-500" fill="none" viewBox="0 0 24 24">
-        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-      </svg>
-    </div>
-  );
-}
+import { Spinner, Button, Card, FormInput } from '@/components/ui';
 
 function LoginForm() {
   const router = useRouter();
@@ -66,60 +56,42 @@ function LoginForm() {
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center px-4">
-      <div className="w-full max-w-md bg-[var(--bg-card)] rounded-2xl p-8 shadow-xl border border-[var(--border)]">
+      <Card variant="modal" padding="p-8" className="w-full max-w-md">
         <div className="mb-6 text-center">
           <Link href="/" className="text-3xl font-bold text-green-500 hover:text-green-400 transition-colors">🏆 WhoWins</Link>
           <p className="mt-2 text-[var(--text-secondary)] text-sm">Sign in to your account</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
-              Email
-            </label>
-            <input
-              id="email"
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-lg bg-[var(--bg-input)] border border-[var(--border)] px-4 py-2.5 text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              placeholder="you@example.com"
-            />
-          </div>
+          <FormInput
+            id="email"
+            label="Email"
+            type="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@example.com"
+          />
 
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
-              Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-lg bg-[var(--bg-input)] border border-[var(--border)] px-4 py-2.5 text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              placeholder="••••••••"
-            />
-          </div>
+          <FormInput
+            id="password"
+            label="Password"
+            type="password"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="••••••••"
+          />
 
-          <button
+          <Button
             type="submit"
-            disabled={submitting}
-            className="w-full mt-2 flex items-center justify-center gap-2 rounded-lg bg-green-500 hover:bg-green-600 disabled:opacity-60 disabled:cursor-not-allowed px-4 py-2.5 font-semibold text-white transition-colors"
+            variant="primary"
+            size="lg"
+            loading={submitting}
+            className="w-full mt-2"
           >
-            {submitting ? (
-              <>
-                <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                </svg>
-                Signing in…
-              </>
-            ) : (
-              'Sign In'
-            )}
-          </button>
+            Sign In
+          </Button>
         </form>
 
         <div className="mt-4 flex items-center gap-3">
@@ -128,6 +100,7 @@ function LoginForm() {
           <div className="flex-1 border-t border-[var(--border)]" />
         </div>
 
+        {/* Google button left as-is — bg-white/text-slate-800 is third-party branding, no matching variant */}
         <button
           type="button"
           onClick={handleGoogle}
@@ -135,10 +108,7 @@ function LoginForm() {
           className="mt-4 w-full flex items-center justify-center gap-3 rounded-lg bg-white hover:bg-gray-100 disabled:opacity-60 disabled:cursor-not-allowed px-4 py-2.5 font-semibold text-slate-800 transition-colors border border-gray-200"
         >
           {googleLoading ? (
-            <svg className="animate-spin h-4 w-4 text-slate-600" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-            </svg>
+            <Spinner size="sm" className="text-slate-600" />
           ) : (
             <span className="text-[#4285F4] font-bold text-base leading-none">G</span>
           )}
@@ -151,16 +121,15 @@ function LoginForm() {
             Register
           </Link>
         </p>
-      </div>
+      </Card>
     </div>
   );
 }
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<Spinner />}>
+    <Suspense fallback={<Spinner size="lg" fullPage />}>
       <LoginForm />
     </Suspense>
   );
 }
-
