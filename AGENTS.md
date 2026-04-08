@@ -42,16 +42,13 @@ Do this for every change, no matter how small. Never skip this step.
 
 When the user asks to create, generate, save, store, or update a prompt, always save it in `prompts/`.
 
-Default filename format:
-`prompt-YYYY-MM-DD.txt`
-
-If a prompt file for that date already exists, never overwrite it.
-Create the next available file using this format instead:
-`prompt-YYYY-MM-DD-01.txt`
-`prompt-YYYY-MM-DD-02.txt`
-and so on.
+Always use one file only:
+`prompts/prompt-YYYY-MM-DD.txt`
 
 Use the current date for the filename unless the user explicitly requests a different one.
+If the file already exists, append the new prompt content to the same file instead of creating a new file or overwriting previous prompts.
+Separate prompt entries clearly with a blank line and a short timestamp header.
 Prefer saving the prompt in the repository over returning it only in chat.
 <!-- END:prompt-storage-rules -->
+
 
