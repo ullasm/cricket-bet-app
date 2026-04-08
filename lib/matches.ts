@@ -9,6 +9,7 @@ import {
   query,
   where,
   orderBy,
+  limit,
   increment,
   serverTimestamp,
   Timestamp,
@@ -157,68 +158,104 @@ export async function upsertUserBetForMatch(
   return placeBet(matchId, groupId, userId, pickedOutcome, stake);
 }
 
+/**
+ * Returns all bets placed by a user within a specific group.
+ * Requires composite index: bets [ userId ASC, groupId ASC ]
+ */
 export async function getUserBetsForGroup(
   groupId: string,
   userId: string
 ): Promise<Bet[]> {
   const snap = await getDocs(
-    query(collection(db, 'bets'), where('userId', '==', userId))
+    query(
+      collection(db, 'bets'),
+      where('userId', '==', userId),
+      where('groupId', '==', groupId)
+    )
   );
-  return snap.docs
-    .filter((d) => d.data().groupId === groupId)
-    .map((d) => ({ id: d.id, ...d.data() } as Bet));
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Bet));
 }
 
+/**
+ * Returns all bets placed in a group across all matches.
+ * Single-field query — no composite index required.
+ */
 export async function getBetsForGroup(groupId: string): Promise<Bet[]> {
   const snap = await getDocs(
     query(collection(db, 'bets'), where('groupId', '==', groupId))
   );
-
   return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Bet));
 }
 
+/**
+ * Returns all bets for a specific match scoped to a group.
+ * Requires composite index: bets [ matchId ASC, groupId ASC ]
+ */
 export async function getBetsForMatch(matchId: string, groupId: string): Promise<Bet[]> {
   const snap = await getDocs(
-    query(collection(db, 'bets'), where('groupId', '==', groupId))
+    query(
+      collection(db, 'bets'),
+      where('matchId', '==', matchId),
+      where('groupId', '==', groupId)
+    )
   );
-
-  return snap.docs
-    .filter((d) => d.data().matchId === matchId)
-    .map((d) => ({ id: d.id, ...d.data() } as Bet));
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Bet));
 }
 
+/**
+ * Returns the single bet a user placed on a specific match, or null.
+ * Requires composite index: bets [ userId ASC, matchId ASC ]
+ */
 export async function getUserBetForMatch(
   matchId: string,
   userId: string
 ): Promise<Bet | null> {
   const snap = await getDocs(
-    query(collection(db, 'bets'), where('userId', '==', userId))
+    query(
+      collection(db, 'bets'),
+      where('userId', '==', userId),
+      where('matchId', '==', matchId),
+      limit(1)
+    )
   );
   if (snap.empty) return null;
-  const found = snap.docs.find((d) => d.data().matchId === matchId);
-  if (!found) return null;
-  return { id: found.id, ...found.data() } as Bet;
+  const d = snap.docs[0];
+  return { id: d.id, ...d.data() } as Bet;
 }
 
+/**
+ * Returns all bets from all members for a specific match in a group.
+ * Alias of getBetsForMatch — kept for clarity at call sites (settlement, admin).
+ * Requires composite index: bets [ matchId ASC, groupId ASC ]
+ */
 export async function getGroupBetsForMatch(
   matchId: string,
   groupId: string
 ): Promise<Bet[]> {
-  const snap = await getDocs(
-    query(collection(db, 'bets'), where('groupId', '==', groupId))
-  );
-  return snap.docs
-    .filter((d) => d.data().matchId === matchId)
-    .map((d) => ({ id: d.id, ...d.data() } as Bet));
+  return getBetsForMatch(matchId, groupId);
 }
 
+/**
+ * Returns one specific member's bet for a match, or null.
+ * Requires composite index: bets [ userId ASC, matchId ASC, groupId ASC ]
+ */
 export async function getMemberBetForMatch(
   matchId: string,
   groupId: string,
   userId: string
 ): Promise<Bet | null> {
-  const bets = await getGroupBetsForMatch(matchId, groupId);
-  return bets.find((bet) => bet.userId === userId) ?? null;
+  const snap = await getDocs(
+    query(
+      collection(db, 'bets'),
+      where('userId', '==', userId),
+      where('matchId', '==', matchId),
+      where('groupId', '==', groupId),
+      limit(1)
+    )
+  );
+  if (snap.empty) return null;
+  const d = snap.docs[0];
+  return { id: d.id, ...d.data() } as Bet;
 }
 
 async function rollbackSettledMatch(matchId: string, groupId: string): Promise<void> {

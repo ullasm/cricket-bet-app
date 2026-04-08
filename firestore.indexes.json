@@ -1,0 +1,58 @@
+{
+  "indexes": [
+    {
+      "_comment": "getUserBetsForGroup: where('userId') + where('groupId')",
+      "collectionGroup": "bets",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId",  "order": "ASCENDING" },
+        { "fieldPath": "groupId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "_comment": "getUserBetForMatch: where('userId') + where('matchId') + limit(1)",
+      "collectionGroup": "bets",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId",  "order": "ASCENDING" },
+        { "fieldPath": "matchId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "_comment": "getBetsForMatch / getGroupBetsForMatch: where('matchId') + where('groupId')",
+      "collectionGroup": "bets",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "matchId", "order": "ASCENDING" },
+        { "fieldPath": "groupId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "_comment": "getMemberBetForMatch: where('userId') + where('matchId') + where('groupId') + limit(1)",
+      "collectionGroup": "bets",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId",  "order": "ASCENDING" },
+        { "fieldPath": "matchId", "order": "ASCENDING" },
+        { "fieldPath": "groupId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "_comment": "getUserGroups: collectionGroup('members') + where('userId'). Collection-group queries always require an explicit index.",
+      "collectionGroup": "members",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "userId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "_comment": "getAllUsers: orderBy('totalPoints', 'desc'). Firestore auto-creates single-field indexes, but listing it here makes it deployable via CLI.",
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "totalPoints", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
