@@ -63,6 +63,14 @@ function getPickedLabel(match: Match, pickedOutcome: Bet['pickedOutcome']) {
   return 'Draw';
 }
 
+function getMatchResultLabel(match: Match) {
+  if (match.result === 'team_a') return `${match.teamA} won`;
+  if (match.result === 'team_b') return `${match.teamB} won`;
+  if (match.result === 'draw') return 'Match drawn';
+  if (match.result === 'abandoned') return 'Match abandoned';
+  return 'Result not declared';
+}
+
 function getMatchPointSummary(bets: Bet[], memberNames: Record<string, string>) {
   return bets
     .filter((bet) => bet.pointsDelta !== null)
@@ -98,8 +106,13 @@ function MatchCard({ match, groupId, myBet, bets, memberNames, currentUserId }: 
     acc[label].push(bet);
     return acc;
   }, {});
+
   const pointSummary = getMatchPointSummary(bets, memberNames);
   const hasSettledSummary = match.status === 'completed' || match.status === 'abandoned';
+  const resultLabel = hasSettledSummary ? getMatchResultLabel(match) : null;
+  const winningEntries = pointSummary.filter((entry) => entry.pointsDelta > 0);
+  const losingEntries = pointSummary.filter((entry) => entry.pointsDelta < 0);
+  const refundedEntries = pointSummary.filter((entry) => entry.pointsDelta === 0);
 
   return (
     <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-[var(--card-padding)] flex flex-col gap-3">
@@ -140,39 +153,73 @@ function MatchCard({ match, groupId, myBet, bets, memberNames, currentUserId }: 
           </Link>
         ) : null}
       </div>
-      {bets.length > 0 && (
+      {(bets.length > 0 || hasSettledSummary) && (
         <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-input)] px-3 py-3 space-y-3">
-          <div>
-            <p className="text-xs font-semibold text-[var(--text-secondary)]">Who betted</p>
-            <div className="mt-2 space-y-2">
-              {Object.entries(betsByOutcome).map(([label, outcomeBets]) => (
-                <div key={label} className="flex flex-wrap items-start gap-2 text-xs">
-                  <span className="rounded-full bg-[var(--bg-card)] px-2 py-0.5 font-medium text-[var(--text-primary)]">
-                    {label}
+          {hasSettledSummary && (
+            <div>
+              <p className="text-xs font-semibold text-[var(--text-secondary)]">Match summary</p>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <span className="rounded-full bg-[var(--bg-card)] px-2.5 py-1 text-xs font-medium text-[var(--text-primary)]">
+                  Result: {resultLabel}
+                </span>
+                {winningEntries.length > 0 ? (
+                  <span className="rounded-full bg-green-500/15 px-2.5 py-1 text-xs font-medium text-green-400">
+                    Won by: {winningEntries.map((entry) => entry.displayName).join(', ')}
                   </span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {outcomeBets.map((bet) => {
-                      const isMe = bet.userId === currentUserId;
-                      const displayName = memberNames[bet.userId] ?? 'Unknown';
-                      return (
-                        <span
-                          key={bet.id}
-                          className={`rounded-full px-2 py-0.5 ${
-                            isMe
-                              ? 'bg-green-500/15 text-green-400'
-                              : 'bg-[var(--bg-card)] text-[var(--text-secondary)]'
-                          }`}
-                        >
-                          {displayName}
-                          {isMe ? ' (you)' : ''}
-                        </span>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
+                ) : refundedEntries.length > 0 ? (
+                  <span className="rounded-full bg-[var(--bg-card)] px-2.5 py-1 text-xs font-medium text-[var(--text-muted)]">
+                    Bets refunded for this match
+                  </span>
+                ) : bets.length > 0 ? (
+                  <span className="rounded-full bg-[var(--bg-card)] px-2.5 py-1 text-xs font-medium text-[var(--text-muted)]">
+                    No winning bets in this group
+                  </span>
+                ) : (
+                  <span className="rounded-full bg-[var(--bg-card)] px-2.5 py-1 text-xs font-medium text-[var(--text-muted)]">
+                    No bets were placed for this match
+                  </span>
+                )}
+                {losingEntries.length > 0 && (
+                  <span className="rounded-full bg-red-500/15 px-2.5 py-1 text-xs font-medium text-red-400">
+                    Lost by: {losingEntries.map((entry) => entry.displayName).join(', ')}
+                  </span>
+                )}
+              </div>
             </div>
-          </div>
+          )}
+          {bets.length > 0 && (
+            <div className={hasSettledSummary ? 'border-t border-[var(--border)] pt-3' : ''}>
+              <p className="text-xs font-semibold text-[var(--text-secondary)]">Who betted</p>
+              <div className="mt-2 space-y-2">
+                {Object.entries(betsByOutcome).map(([label, outcomeBets]) => (
+                  <div key={label} className="flex flex-wrap items-start gap-2 text-xs">
+                    <span className="rounded-full bg-[var(--bg-card)] px-2 py-0.5 font-medium text-[var(--text-primary)]">
+                      {label}
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {outcomeBets.map((bet) => {
+                        const isMe = bet.userId === currentUserId;
+                        const displayName = memberNames[bet.userId] ?? 'Unknown';
+                        return (
+                          <span
+                            key={bet.id}
+                            className={`rounded-full px-2 py-0.5 ${
+                              isMe
+                                ? 'bg-green-500/15 text-green-400'
+                                : 'bg-[var(--bg-card)] text-[var(--text-secondary)]'
+                            }`}
+                          >
+                            {displayName}
+                            {isMe ? ' (you)' : ''}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           {hasSettledSummary && (
             <div className="border-t border-[var(--border)] pt-3">
               <p className="text-xs font-semibold text-[var(--text-secondary)]">Points summary</p>
@@ -605,6 +652,11 @@ export default function GroupDashboardPage() {
     </ProtectedRoute>
   );
 }
+
+
+
+
+
 
 
 
