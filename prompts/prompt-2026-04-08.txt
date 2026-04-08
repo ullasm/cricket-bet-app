@@ -1,1 +1,67 @@
 Update the application so dark theme is the default everywhere, including the initial page load before hydration and the runtime theme state after React mounts. Ensure the theme system stays consistent across layout bootstrapping, persisted user preference handling, and theme context defaults. If a user has no saved preference, the app should open in dark mode by default. Keep the implementation clean, reusable, and production-safe.
+
+[2026-04-08 09:05 IST]
+Analyze this application deeply and help identify and fix bugs across auth, groups, invite links, and match flows.
+
+[2026-04-08 09:12 IST]
+Focus on a concrete bug visible in UI or console and implement a production-safe fix with verification.
+
+[2026-04-08 09:20 IST]
+Continue bug fixing with emphasis on invite-link handling and group/member edge cases.
+
+[2026-04-08 09:28 IST]
+Investigate and fix the "Failed to load group" behavior by isolating partial-load failures and improving resilience.
+
+[2026-04-08 09:34 IST]
+Replace all green accent usage with #2E86C1 across all themes while preserving readability and hover/focus states.
+
+[2026-04-08 09:40 IST]
+Fix "Failed to load matches" and make the matches fetch path robust against Firestore index/query limitations.
+
+[2026-04-08 09:47 IST]
+Add admin capability to create and modify previously declared/past matches and safely resettle points.
+
+[2026-04-08 09:55 IST]
+Implement admin workflows to manage group members' bets for any match, including completed historical matches.
+
+[2026-04-08 10:03 IST]
+Fix permission-denied errors when saving bets on past matches and align user-facing errors with root cause.
+
+[2026-04-08 10:11 IST]
+Set dark theme as default globally, including pre-hydration and runtime theme state consistency.
+
+[2026-04-08 10:18 IST]
+Eliminate theme flicker by applying the persisted theme before paint and preventing hydration flash.
+
+[2026-04-08 10:24 IST]
+For past matches, show group-level points summary per member for each settled match.
+
+[2026-04-08 10:31 IST]
+Set light theme as default globally while keeping pre-paint theme handling consistent.
+
+[2026-04-08 10:38 IST]
+Restore dark theme as default globally while preserving pre-hydration theme stability.
+
+[2026-04-08 10:44 IST]
+On "Fetch Live & Upcoming Matches", enforce 30-minute cache reuse, store request/response/timestamp in Firebase, and cap external API fetches to 100.
+
+[2026-04-08 10:52 IST]
+Allow admins to edit member display names in group management and keep group-level name rendering consistent.
+
+[2026-04-08 11:00 IST]
+For completed matches, always show result and group summary even if the current user did not place a bet.
+
+[2026-04-08 11:08 IST]
+Redesign past match cards to a compact chip-based layout with per-bettor status colors, sorted ordering, and loading placeholders.
+
+[2026-04-08 11:16 IST]
+Standardize typography and visual variants between upcoming/live cards and past match cards.
+
+[2026-04-08 11:22 IST]
+Rename the admin match action label from "Edit" to "Edit match".
+
+[2026-04-08 11:27 IST]
+Move match deletion access from list-row actions into the Edit Match popup.
+
+[2026-04-08 11:33 IST]
+Undo the previous delete-action relocation and restore the prior delete interaction model.
