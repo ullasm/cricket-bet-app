@@ -19,7 +19,7 @@
       ]
     },
     {
-      "_comment": "getBetsForMatch / getGroupBetsForMatch: where('matchId') + where('groupId')",
+      "_comment": "getBetsForMatch / getGroupBetsForMatch / settleMatch fetchBetsForMatch: where('matchId') + where('groupId')",
       "collectionGroup": "bets",
       "queryScope": "COLLECTION",
       "fields": [
@@ -38,6 +38,15 @@
       ]
     },
     {
+      "_comment": "Group dashboard onSnapshot: where('groupId') + orderBy('matchDate', 'desc')",
+      "collectionGroup": "matches",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "groupId",   "order": "ASCENDING" },
+        { "fieldPath": "matchDate", "order": "DESCENDING" }
+      ]
+    },
+    {
       "_comment": "getUserGroups: collectionGroup('members') + where('userId'). Collection-group queries always require an explicit index.",
       "collectionGroup": "members",
       "queryScope": "COLLECTION_GROUP",
@@ -46,7 +55,15 @@
       ]
     },
     {
-      "_comment": "getAllUsers: orderBy('totalPoints', 'desc'). Firestore auto-creates single-field indexes, but listing it here makes it deployable via CLI.",
+      "_comment": "Group dashboard leaderboard onSnapshot + getGroupMembers: orderBy('totalPoints', 'desc') on members subcollection.",
+      "collectionGroup": "members",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "totalPoints", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "_comment": "getAllUsers: orderBy('totalPoints', 'desc'). Firestore auto-creates single-field indexes, but listing here makes it deployable via CLI.",
       "collectionGroup": "users",
       "queryScope": "COLLECTION",
       "fields": [

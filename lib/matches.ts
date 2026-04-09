@@ -10,12 +10,16 @@ import {
   where,
   orderBy,
   limit,
-  increment,
   serverTimestamp,
-  Timestamp,
 } from 'firebase/firestore';
 import type { Timestamp as TimestampType } from 'firebase/firestore';
 import { db } from './firebase';
+import {
+  settleMatch as settleMatchEngine,
+  rollbackSettlement,
+  declareMatchResult as declareMatchResultEngine,
+} from './settleMatch';
+export type { SettlementSummary, MatchResult, NoDrawPolicy } from './settleMatch';
 
 // -- interfaces ---------------------------------------------------------------
 
@@ -52,7 +56,14 @@ export interface Bet {
   pickedOutcome: 'team_a' | 'team_b' | 'draw';
   stake: number;
   pointsDelta: number | null;
-  status: 'pending' | 'won' | 'lost' | 'refunded';
+  /**
+   * pending  — bet not yet settled
+   * won      — bet won; pointsDelta is the net gain
+   * lost     — bet lost; pointsDelta is the negative stake
+   * refunded — match abandoned or draw-refund policy; pointsDelta = 0
+   * locked   — pot rolled over to next match; pointsDelta = 0 until paid out
+   */
+  status: 'pending' | 'won' | 'lost' | 'refunded' | 'locked';
   placedAt: TimestampType;
 }
 
@@ -61,9 +72,6 @@ export interface BetInput {
   stake: number;
 }
 
-function groupMemberRef(groupId: string, userId: string) {
-  return doc(db, 'groups', groupId, 'members', userId);
-}
 
 // -- match functions ----------------------------------------------------------
 
@@ -258,142 +266,42 @@ export async function getMemberBetForMatch(
   return { id: d.id, ...d.data() } as Bet;
 }
 
-async function rollbackSettledMatch(matchId: string, groupId: string): Promise<void> {
-  const bets = await getGroupBetsForMatch(matchId, groupId);
+// -- settlement (delegates to lib/settleMatch.ts) -----------------------------
 
-  await Promise.all(
-    bets.map(async (bet) => {
-      const previousDelta = bet.pointsDelta ?? 0;
-
-      if (previousDelta !== 0) {
-        await updateDoc(groupMemberRef(groupId, bet.userId), {
-          totalPoints: increment(-previousDelta),
-        });
-      }
-
-      await updateDoc(doc(db, 'bets', bet.id), {
-        status: 'pending',
-        pointsDelta: null,
-      });
-    })
-  );
-}
-
-// -- settlement ---------------------------------------------------------------
-
+/**
+ * Settles a match. Delegates to the full settlement engine in lib/settleMatch.ts.
+ * @see settleMatch.ts for full rollover / proportional payout logic.
+ */
 export async function settleMatch(
   matchId: string,
   groupId: string,
   result: string,
   noDrawPolicy: string
 ): Promise<void> {
-  const bets = await getGroupBetsForMatch(matchId, groupId);
-  const matchRef = doc(db, 'matches', matchId);
-
-  async function refundAll() {
-    await Promise.all(
-      bets.map((b) =>
-        updateDoc(doc(db, 'bets', b.id), { status: 'refunded', pointsDelta: 0 })
-      )
-    );
-  }
-
-  if (result === 'abandoned') {
-    await refundAll();
-    await updateDoc(matchRef, {
-      status: 'abandoned',
-      result: 'abandoned',
-      bettingOpen: false,
-      bettingClosedAt: Timestamp.now(),
-    });
-    return;
-  }
-
-  if (result === 'draw') {
-    const drawBets = bets.filter((b) => b.pickedOutcome === 'draw');
-    const otherBets = bets.filter((b) => b.pickedOutcome !== 'draw');
-
-    if (drawBets.length === 0) {
-      if (noDrawPolicy === 'refund') {
-        await refundAll();
-      }
-      await updateDoc(matchRef, {
-        status: 'completed',
-        result: 'draw',
-        bettingOpen: false,
-        bettingClosedAt: Timestamp.now(),
-      });
-      return;
-    }
-
-    const losersStake = otherBets.reduce((sum, bet) => sum + bet.stake, 0);
-    const winnerShare = Math.floor(losersStake / drawBets.length);
-
-    await Promise.all([
-      ...drawBets.map((bet) =>
-        updateDoc(doc(db, 'bets', bet.id), { status: 'won', pointsDelta: winnerShare }).then(() =>
-          updateDoc(groupMemberRef(groupId, bet.userId), { totalPoints: increment(winnerShare) })
-        )
-      ),
-      ...otherBets.map((bet) =>
-        updateDoc(doc(db, 'bets', bet.id), { status: 'lost', pointsDelta: -bet.stake }).then(() =>
-          updateDoc(groupMemberRef(groupId, bet.userId), { totalPoints: increment(-bet.stake) })
-        )
-      ),
-    ]);
-
-    await updateDoc(matchRef, {
-      status: 'completed',
-      result: 'draw',
-      bettingOpen: false,
-      bettingClosedAt: Timestamp.now(),
-    });
-    return;
-  }
-
-  const winnerBets = bets.filter((bet) => bet.pickedOutcome === result);
-  const loserBets = bets.filter((bet) => bet.pickedOutcome !== result);
-
-  const losersStake = loserBets.reduce((sum, bet) => sum + bet.stake, 0);
-  const winnerShare = winnerBets.length > 0 ? Math.floor(losersStake / winnerBets.length) : 0;
-
-  await Promise.all([
-    ...winnerBets.map((bet) =>
-      updateDoc(doc(db, 'bets', bet.id), { status: 'won', pointsDelta: winnerShare }).then(() =>
-        updateDoc(groupMemberRef(groupId, bet.userId), { totalPoints: increment(winnerShare) })
-      )
-    ),
-    ...loserBets.map((bet) =>
-      updateDoc(doc(db, 'bets', bet.id), { status: 'lost', pointsDelta: -bet.stake }).then(() =>
-        updateDoc(groupMemberRef(groupId, bet.userId), { totalPoints: increment(-bet.stake) })
-      )
-    ),
-  ]);
-
-  await updateDoc(matchRef, {
-    status: 'completed',
-    result,
-    bettingOpen: false,
-    bettingClosedAt: Timestamp.now(),
+  await settleMatchEngine({
+    matchId,
+    groupId,
+    result:       result       as import('./settleMatch').MatchResult,
+    noDrawPolicy: noDrawPolicy as import('./settleMatch').NoDrawPolicy,
   });
 }
 
+/**
+ * Declares (or re-declares) a match result. Rolls back any prior settlement
+ * before applying the new one. Returns a SettlementSummary for UI toasts.
+ */
 export async function declareMatchResult(
   matchId: string,
   groupId: string,
   result: 'team_a' | 'team_b' | 'draw' | 'abandoned',
   noDrawPolicy: string
-): Promise<void> {
-  const currentMatch = await getMatchById(matchId);
-  if (!currentMatch) {
-    throw new Error('Match not found');
-  }
-
-  if (currentMatch.status === 'completed' || currentMatch.status === 'abandoned') {
-    await rollbackSettledMatch(matchId, groupId);
-  }
-
-  await settleMatch(matchId, groupId, result, noDrawPolicy);
+): Promise<import('./settleMatch').SettlementSummary> {
+  return declareMatchResultEngine(
+    matchId,
+    groupId,
+    result,
+    noDrawPolicy as import('./settleMatch').NoDrawPolicy
+  );
 }
 
 
@@ -411,7 +319,7 @@ export async function adminUpsertBetForMatch(
   const shouldResettle = currentMatch.status === 'completed' || currentMatch.status === 'abandoned';
 
   if (shouldResettle) {
-    await rollbackSettledMatch(matchId, groupId);
+    await rollbackSettlement(matchId, groupId);
   }
 
   const existingBet = await getMemberBetForMatch(matchId, groupId, userId);
@@ -437,7 +345,12 @@ export async function adminUpsertBetForMatch(
   }
 
   if (shouldResettle) {
-    await settleMatch(matchId, groupId, currentMatch.result, currentMatch.noDrawPolicy);
+    await settleMatchEngine({
+      matchId,
+      groupId,
+      result:       currentMatch.result       as import('./settleMatch').MatchResult,
+      noDrawPolicy: currentMatch.noDrawPolicy as import('./settleMatch').NoDrawPolicy,
+    });
   }
 }
 

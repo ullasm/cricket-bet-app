@@ -8,6 +8,7 @@ import {
   setDoc,
   updateDoc,
   deleteDoc,
+  writeBatch,
   query,
   where,
   orderBy,
@@ -15,6 +16,7 @@ import {
   arrayUnion,
   arrayRemove,
 } from 'firebase/firestore';
+import type { WriteBatch } from 'firebase/firestore';
 import type { Timestamp } from 'firebase/firestore';
 import { db } from './firebase';
 
@@ -26,6 +28,13 @@ export interface Group {
   createdBy: string;
   inviteCode: string;
   createdAt: Timestamp;
+  /**
+   * Points held in escrow from previous matches that ended in a draw or
+   * abandonment with noDrawPolicy === 'rollover'. These are added to the
+   * total pot of the next match that produces a clear winner and then reset
+   * to 0. Field may be absent on legacy documents — treat as 0.
+   */
+  rolloverPot?: number;
 }
 
 export interface GroupMember {
@@ -242,38 +251,164 @@ export async function updateMemberDisplayName(
   await updateDoc(doc(db, 'groups', groupId, 'members', userId), { displayName });
 }
 
+// ── deleteGroupCascade helpers ────────────────────────────────────────────────
+
+/**
+ * Maximum Firestore WriteBatch operations per commit.
+ * The hard limit is 500; we use 499 to leave one slot free for the group
+ * document delete that anchors the final batch.
+ */
+const BATCH_LIMIT = 499;
+
+/**
+ * Commits an array of WriteBatch instances sequentially, collecting any
+ * per-batch errors rather than aborting on the first failure. This gives
+ * callers full diagnostic information about which chunks succeeded.
+ *
+ * NOTE: Firestore client-side batches are NOT atomic across chunks.
+ * If a later chunk fails, earlier chunks have already committed.
+ * For true atomicity across >500 ops you need Cloud Functions + admin SDK.
+ */
+async function flushBatches(batches: WriteBatch[], context: string): Promise<void> {
+  const errors: Array<{ batchIndex: number; error: unknown }> = [];
+
+  for (let i = 0; i < batches.length; i++) {
+    try {
+      await batches[i].commit();
+    } catch (err) {
+      console.error(
+        `[deleteGroupCascade] Batch ${i + 1}/${batches.length} failed (${context}):`,
+        err
+      );
+      errors.push({ batchIndex: i, error: err });
+    }
+  }
+
+  if (errors.length > 0) {
+    const messages = errors
+      .map(({ batchIndex, error }) =>
+        `Batch ${batchIndex + 1}: ${error instanceof Error ? error.message : String(error)}`
+      )
+      .join('; ');
+    throw new Error(
+      `[deleteGroupCascade] ${errors.length} of ${batches.length} batch(es) failed — ` +
+      `partial data may remain. Context: ${context}. Details: ${messages}`
+    );
+  }
+}
+
+// ── deleteGroupCascade ────────────────────────────────────────────────────────
+
+/**
+ * Deletes a group and ALL associated data:
+ *  - All bets linked to the group
+ *  - All matches linked to the group
+ *  - The group document itself
+ *  - All members subcollection documents
+ *  - Removes the groupId from every member's users/{uid}.groupIds array
+ *
+ * Writes are chunked into sequential WriteBatch commits of ≤ 499 ops each
+ * to stay under Firestore's 500-operation hard limit.
+ *
+ * ⚠️  Each chunk is committed independently; this is NOT a single atomic
+ * transaction. For a fully atomic cascade you need Cloud Functions with the
+ * Firebase Admin SDK.
+ */
 export async function deleteGroupCascade(groupId: string, adminUserId: string): Promise<void> {
+  // ── 1. Auth guard ────────────────────────────────────────────────────────
   const admin = await getUserGroupMember(groupId, adminUserId);
   if (!admin || admin.role !== 'admin') {
     throw new Error('Admin privileges required to delete this group');
   }
 
+  // ── 2. Fetch all documents that need to be removed ───────────────────────
   const [betsSnap, matchesSnap, membersSnap] = await Promise.all([
-    getDocs(query(collection(db, 'bets'), where('groupId', '==', groupId))),
+    getDocs(query(collection(db, 'bets'),    where('groupId', '==', groupId))),
     getDocs(query(collection(db, 'matches'), where('groupId', '==', groupId))),
     getDocs(collection(db, 'groups', groupId, 'members')),
   ]);
 
-  await Promise.all(betsSnap.docs.map((d) => deleteDoc(doc(db, 'bets', d.id))));
-  await Promise.all(matchesSnap.docs.map((d) => deleteDoc(doc(db, 'matches', d.id))));
+  const betDocs     = betsSnap.docs;
+  const matchDocs   = matchesSnap.docs;
+  const memberDocs  = membersSnap.docs;
+  const memberIds   = memberDocs.map((d) => d.id);
 
-  // Delete the group doc before member docs are removed to keep admin checks valid.
-  await deleteDoc(doc(db, 'groups', groupId));
+  const totalOps =
+    betDocs.length +    // delete bets
+    matchDocs.length +  // delete matches
+    1 +                 // delete group doc
+    memberDocs.length + // delete member subcollection docs
+    memberIds.length;   // arrayRemove groupId from each users/{uid}
 
-  const adminMemberDoc = membersSnap.docs.find((d) => d.id === adminUserId);
-  const otherMemberDocs = membersSnap.docs.filter((d) => d.id !== adminUserId);
+  console.info(
+    `[deleteGroupCascade] groupId=${groupId} | ` +
+    `bets=${betDocs.length} matches=${matchDocs.length} ` +
+    `members=${memberDocs.length} totalOps=${totalOps}`
+  );
 
-  // Remove other members first while the admin membership doc still exists.
-  await Promise.all(otherMemberDocs.map((d) => deleteDoc(d.ref)));
+  // ── 3. Build all batches ─────────────────────────────────────────────────
+  //
+  // Ordering rationale:
+  //   a) Delete bets + matches first (no Firestore-Rules dependency).
+  //   b) Delete the group doc BEFORE member docs so that any in-flight Rules
+  //      check that calls isGroupAdmin() is already working with a gone group.
+  //   c) Delete member subcollection docs.
+  //   d) Strip groupId from each users/{uid} profile last (best-effort cleanup).
+  //
+  const batches: WriteBatch[] = [];
+  let current = writeBatch(db);
+  let opCount = 0;
 
-  // Remove the deleting admin membership last.
-  if (adminMemberDoc) {
-    await deleteDoc(adminMemberDoc.ref);
+  function enqueue(operation: (b: WriteBatch) => void): void {
+    if (opCount >= BATCH_LIMIT) {
+      batches.push(current);
+      current = writeBatch(db);
+      opCount = 0;
+    }
+    operation(current);
+    opCount++;
   }
 
-  // Best-effort cleanup for the deleting admin's cached groupIds array.
-  await updateDoc(doc(db, 'users', adminUserId), {
-    groupIds: arrayRemove(groupId),
-  });
+  // (a) Bets
+  for (const d of betDocs) {
+    enqueue((b) => b.delete(d.ref));
+  }
+
+  // (b) Matches
+  for (const d of matchDocs) {
+    enqueue((b) => b.delete(d.ref));
+  }
+
+  // (b) Group document — must land in the same batch as the last member delete
+  //     or an earlier one so Rules are satisfied. We append it here so it
+  //     commits together with or before the member docs.
+  enqueue((b) => b.delete(doc(db, 'groups', groupId)));
+
+  // (c) Member subcollection docs
+  for (const d of memberDocs) {
+    enqueue((b) => b.delete(d.ref));
+  }
+
+  // (d) Strip groupId from users/{uid}.groupIds for EVERY member
+  for (const uid of memberIds) {
+    enqueue((b) =>
+      b.update(doc(db, 'users', uid), { groupIds: arrayRemove(groupId) })
+    );
+  }
+
+  // Push the last in-progress batch (it will have at least the group delete)
+  if (opCount > 0) {
+    batches.push(current);
+  }
+
+  console.info(
+    `[deleteGroupCascade] committing ${batches.length} batch(es) ` +
+    `(${totalOps} ops, limit=${BATCH_LIMIT}/batch)`
+  );
+
+  // ── 4. Commit all batches sequentially ─────────────────────────────────
+  await flushBatches(batches, `groupId=${groupId}`);
+
+  console.info(`[deleteGroupCascade] completed — groupId=${groupId}`);
 }
 

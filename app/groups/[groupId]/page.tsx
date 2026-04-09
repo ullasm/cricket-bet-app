@@ -1,17 +1,19 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { Settings } from 'lucide-react';
+import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import ThemeSwitcher from '@/components/ThemeSwitcher';
 import { useAuth } from '@/lib/AuthContext';
 import { logoutUser } from '@/lib/auth';
-import { getGroupById, getUserGroupMember, getGroupMembers } from '@/lib/groups';
+import { getGroupById, getUserGroupMember } from '@/lib/groups';
 import type { Group, GroupMember } from '@/lib/groups';
-import { getBetsForGroup, getBetsForMatch, getMatches, getUserBetsForGroup, upsertUserBetForMatch } from '@/lib/matches';
+import { getBetsForGroup, getBetsForMatch, getUserBetsForGroup, upsertUserBetForMatch } from '@/lib/matches';
 import type { Match, Bet } from '@/lib/matches';
 import { copyText, getInviteLink } from '@/lib/share';
 import { Spinner, Button, Badge, Card, SectionHeader, PageHeader, Avatar, matchStatusVariant, betStatusVariant } from '@/components/ui';
@@ -487,126 +489,164 @@ function GroupDashboardContent() {
   const [loadingPastMatchBets, setLoadingPastMatchBets] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  // Tracks whether the current user is a member; resolved once on mount.
+  const memberCheckedRef = useRef(false);
+
+  // Tracks which past match IDs have already had their bets fetched.
+  // Past matches are settled/frozen — once loaded we never need to re-fetch them.
+  // Using a ref (not state) so updates inside the onSnapshot callback don't
+  // trigger a re-render or restart the effect.
+  const loadedPastMatchIds = useRef<Set<string>>(new Set());
+
+  // ── Step 1: Resolve group + membership (one-shot, gating all listeners) ──
   useEffect(() => {
     if (!user) return;
-    const currentUser = user;
-
     let cancelled = false;
 
-    async function loadGroupDashboard() {
-      try {
-        const [groupResult, memberResult] = await Promise.all([
-          getGroupById(groupId),
-          getUserGroupMember(groupId, currentUser.uid),
-        ]);
-
-        if (cancelled) {
-          return;
-        }
-
+    Promise.all([
+      getGroupById(groupId),
+      getUserGroupMember(groupId, user.uid),
+    ])
+      .then(([groupResult, memberResult]) => {
+        if (cancelled) return;
         setGroup(groupResult);
         setMyMember(memberResult);
+        memberCheckedRef.current = true;
+        // loading stays true until matches/members snapshots deliver first data
+      })
+      .catch(() => {
+        if (cancelled) return;
+        toast.error('Failed to load group');
+        setMyMember(null);
+        setLoading(false);
+      });
 
-        if (memberResult === null) {
-          return;
-        }
-
-        const [membersResult, matchesResult, betsResult, groupBetsResult] = await Promise.allSettled([
-          getGroupMembers(groupId),
-          getMatches(groupId),
-          getUserBetsForGroup(groupId, currentUser.uid),
-          getBetsForGroup(groupId),
-        ]);
-
-        if (cancelled) {
-          return;
-        }
-
-        if (membersResult.status === 'fulfilled') {
-          setMembers(membersResult.value);
-        } else {
-          toast.error('Failed to load leaderboard');
-        }
-
-        if (matchesResult.status === 'fulfilled') {
-          const fetchedMatches = matchesResult.value;
-          setMatches(fetchedMatches);
-
-          const now = new Date();
-          const fetchedPastMatches = fetchedMatches.filter((match) => isPastMatch(match, now));
-
-          if (fetchedPastMatches.length === 0) {
-            setPastMatchBets({});
-            setLoadingPastMatchBets(false);
-          } else {
-            setLoadingPastMatchBets(true);
-            const pastMatchBetsResults = await Promise.allSettled(
-              fetchedPastMatches.map(async (match) => ({
-                matchId: match.id,
-                bets: await getBetsForMatch(match.id, groupId),
-              }))
-            );
-
-            if (cancelled) {
-              return;
-            }
-
-            const pastBetsMap: Record<string, Bet[]> = {};
-            let hadPastBetErrors = false;
-
-            for (const result of pastMatchBetsResults) {
-              if (result.status === 'fulfilled') {
-                pastBetsMap[result.value.matchId] = result.value.bets;
-              } else {
-                hadPastBetErrors = true;
-              }
-            }
-
-            setPastMatchBets(pastBetsMap);
-            setLoadingPastMatchBets(false);
-
-            if (hadPastBetErrors) {
-              toast.error('Failed to load some past match bets');
-            }
-          }
-        } else {
-          toast.error('Failed to load matches');
-        }
-
-        if (betsResult.status === 'fulfilled') {
-          const map: Record<string, Bet> = {};
-          for (const bet of betsResult.value) map[bet.matchId] = bet;
-          setMyBets(map);
-        }
-
-        if (groupBetsResult.status === 'fulfilled') {
-          const grouped: Record<string, Bet[]> = {};
-          for (const bet of groupBetsResult.value) {
-            grouped[bet.matchId] ??= [];
-            grouped[bet.matchId].push(bet);
-          }
-          setGroupBets(grouped);
-        } else {
-          toast.error('Failed to load group bets');
-        }
-      } catch {
-        if (!cancelled) {
-          toast.error('Failed to load group');
-          setMyMember(null);
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    }
-
-    loadGroupDashboard();
-
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [user, groupId]);
+
+  // ── Step 2: Real-time matches listener ────────────────────────────────────
+  useEffect(() => {
+    // Wait until membership is confirmed
+    if (myMember === undefined) return;
+    // Non-member: nothing to listen to
+    if (myMember === null) { setLoading(false); return; }
+    if (!user) return;
+
+    const matchesQuery = query(
+      collection(db, 'matches'),
+      where('groupId', '==', groupId),
+      orderBy('matchDate', 'desc')
+    );
+
+    const unsub = onSnapshot(
+      matchesQuery,
+      async (snap) => {
+        const fetchedMatches = snap.docs.map(
+          (d) => ({ id: d.id, ...d.data() } as Match)
+        );
+        setMatches(fetchedMatches);
+        setLoading(false);
+
+        // Re-fetch bets whenever matches change (new match added, status changes)
+        const now = new Date();
+        const pastMatches = fetchedMatches.filter((m) => isPastMatch(m, now));
+
+        // Fetch user bets + all group bets in parallel
+        try {
+          const [userBets, allGroupBets] = await Promise.all([
+            getUserBetsForGroup(groupId, user.uid),
+            getBetsForGroup(groupId),
+          ]);
+
+          const myBetsMap: Record<string, Bet> = {};
+          for (const bet of userBets) myBetsMap[bet.matchId] = bet;
+          setMyBets(myBetsMap);
+
+          const groupBetsMap: Record<string, Bet[]> = {};
+          for (const bet of allGroupBets) {
+            groupBetsMap[bet.matchId] ??= [];
+            groupBetsMap[bet.matchId].push(bet);
+          }
+          setGroupBets(groupBetsMap);
+        } catch {
+          toast.error('Failed to load bets');
+        }
+
+        // Past match bets — only fetch for matches we haven't loaded yet.
+        // Past matches are settled/frozen, so their bets never change.
+        // Skipping already-loaded matches prevents the loading flash on every
+        // snapshot tick (e.g. when betting opens on a live match).
+        const newPastMatches = pastMatches.filter(
+          (m) => !loadedPastMatchIds.current.has(m.id)
+        );
+
+        if (newPastMatches.length === 0) {
+          // Nothing new to load — leave pastMatchBets and loadingPastMatchBets
+          // exactly as they are. This is the common case after the first load.
+          return;
+        }
+
+        setLoadingPastMatchBets(true);
+        const results = await Promise.allSettled(
+          newPastMatches.map(async (m) => ({
+            matchId: m.id,
+            bets: await getBetsForMatch(m.id, groupId),
+          }))
+        );
+        let hadErrors = false;
+        setPastMatchBets((prev) => {
+          const updated = { ...prev };
+          for (const r of results) {
+            if (r.status === 'fulfilled') {
+              updated[r.value.matchId] = r.value.bets;
+              // Mark as loaded so future snapshot ticks skip this match.
+              loadedPastMatchIds.current.add(r.value.matchId);
+            } else {
+              hadErrors = true;
+            }
+          }
+          return updated;
+        });
+        setLoadingPastMatchBets(false);
+        if (hadErrors) toast.error('Failed to load some past match bets');
+      },
+      (err) => {
+        console.error('[GroupDashboard] matches listener error:', err);
+        toast.error('Failed to load matches');
+        setLoading(false);
+      }
+    );
+
+    return unsub;
+  }, [myMember, user, groupId]);
+
+  // ── Step 3: Real-time leaderboard (members) listener ─────────────────────
+  useEffect(() => {
+    if (myMember === undefined || myMember === null || !user) return;
+
+    const membersQuery = query(
+      collection(db, 'groups', groupId, 'members'),
+      orderBy('totalPoints', 'desc')
+    );
+
+    const unsub = onSnapshot(
+      membersQuery,
+      (snap) => {
+        const updatedMembers = snap.docs.map((d) => d.data() as GroupMember);
+        setMembers(updatedMembers);
+
+        // Keep myMember in sync so admin badge / points in header reflect changes
+        const mine = updatedMembers.find((m) => m.userId === user.uid);
+        if (mine) setMyMember(mine);
+      },
+      (err) => {
+        console.error('[GroupDashboard] members listener error:', err);
+        toast.error('Failed to keep leaderboard in sync');
+      }
+    );
+
+    return unsub;
+  }, [myMember, user, groupId]);
 
   async function handleLogout() {
     try {
@@ -703,9 +743,13 @@ function GroupDashboardContent() {
             )}
             <ThemeSwitcher />
             {userProfile && (
-              <div className="flex items-center gap-2">
+              <Link
+                href="/profile"
+                title="My Profile"
+                className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+              >
                 <Avatar name={userProfile.displayName} color={userProfile.avatarColor} size="md" />
-              </div>
+              </Link>
             )}
             <Button variant="ghost-warning" size="md" onClick={handleLogout}>
               Sign out
