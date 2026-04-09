@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { doc, updateDoc, Timestamp } from 'firebase/firestore';
 import { RefreshCw } from 'lucide-react';
@@ -769,16 +770,24 @@ function GroupAdminContent() {
 
       {/* Navbar */}
       <AppNavbar
-        backHref={`/groups/${groupId}`}
         center={
           group?.name ? (
-            <span className="font-semibold text-sm sm:text-base text-[var(--text-primary)] truncate max-w-xs">
+            <Link href={`/groups/${groupId}`} className="font-semibold text-sm sm:text-base text-[var(--text-primary)] truncate max-w-xs hover:opacity-75 transition-opacity">
               {group.name}
-              <span className="ml-2 text-xs font-medium text-[var(--text-muted)]">· Admin</span>
-            </span>
+            </Link>
           ) : undefined
         }
         maxWidth="4xl"
+        extraActions={
+          <div className="flex items-center gap-4">
+            <Link href={`/groups/${groupId}/admin`} className="pb-1 text-sm font-semibold text-[var(--text-primary)] border-b-2 border-blue-500">
+              Matches
+            </Link>
+            <Link href={`/groups/${groupId}/manage`} className="pb-1 text-sm font-medium text-[var(--text-muted)] border-b-2 border-transparent hover:text-[var(--text-primary)] transition-colors">
+              Group Info
+            </Link>
+          </div>
+        }
       />
 
       <main className="max-w-4xl mx-auto px-6 py-8 space-y-10">
@@ -838,13 +847,12 @@ function GroupAdminContent() {
                         <button
                           onClick={() => handleAddFromCricApi(cm)}
                           disabled={!!state}
-                          className={`shrink-0 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors disabled:cursor-not-allowed ${
-                            state === 'added'
+                          className={`shrink-0 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors disabled:cursor-not-allowed ${state === 'added'
                               ? 'bg-green-500/20 text-green-400 disabled:opacity-100'
                               : state === 'adding'
-                              ? 'bg-green-500/20 text-green-400 opacity-60'
-                              : 'bg-green-500 hover:bg-green-600 text-white'
-                          }`}
+                                ? 'bg-green-500/20 text-green-400 opacity-60'
+                                : 'bg-green-500 hover:bg-green-600 text-white'
+                            }`}
                         >
                           {state === 'added' ? 'Added ✓' : state === 'adding' ? 'Adding…' : 'Add to Group'}
                         </button>
@@ -984,11 +992,10 @@ function GroupAdminContent() {
                         <button
                           onClick={() => handleToggleBetting(match)}
                           disabled={togglingBet[match.id]}
-                          className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50 ${
-                            match.bettingOpen
+                          className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50 ${match.bettingOpen
                               ? 'bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30'
                               : 'bg-[var(--bg-input)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'
-                          }`}
+                            }`}
                         >
                           {match.bettingOpen ? 'Close Betting' : 'Open Betting'}
                         </button>

@@ -1,5 +1,6 @@
 import type { FC, ReactNode } from 'react';
 import Link from 'next/link';
+import { ChevronLeft } from 'lucide-react';
 
 type MaxWidth = 'sm' | 'md' | 'lg' | 'xl' | '3xl' | '4xl' | '5xl';
 
@@ -69,6 +70,16 @@ export const PageHeader: FC<PageHeaderProps> = ({
               </span>
             )}
           </div>
+
+          {backHref && (
+            <Link
+              href={backHref}
+              aria-label="Go back"
+              className="shrink-0 flex items-center justify-center h-8 w-8 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </Link>
+          )}
         </div>
 
         {/* Center: group name or any centered content */}

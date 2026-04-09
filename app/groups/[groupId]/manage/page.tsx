@@ -348,16 +348,24 @@ function ManageContent() {
 
       {/* Navbar */}
       <AppNavbar
-        backHref={`/groups/${groupId}`}
         center={
           group?.name ? (
-            <span className="font-semibold text-sm sm:text-base text-[var(--text-primary)] truncate max-w-xs">
+            <Link href={`/groups/${groupId}`} className="font-semibold text-sm sm:text-base text-[var(--text-primary)] truncate max-w-xs hover:opacity-75 transition-opacity">
               {group.name}
-              <span className="ml-2 text-xs font-medium text-[var(--text-muted)]">· Settings</span>
-            </span>
+            </Link>
           ) : undefined
         }
         maxWidth="3xl"
+        extraActions={
+          <div className="flex items-center gap-4">
+            <Link href={`/groups/${groupId}/admin`} className="pb-1 text-sm font-medium text-[var(--text-muted)] border-b-2 border-transparent hover:text-[var(--text-primary)] transition-colors">
+              Matches
+            </Link>
+            <Link href={`/groups/${groupId}/manage`} className="pb-1 text-sm font-semibold text-[var(--text-primary)] border-b-2 border-blue-500">
+              Group Info
+            </Link>
+          </div>
+        }
       />
 
       <main className="max-w-3xl mx-auto px-6 py-8 space-y-6">

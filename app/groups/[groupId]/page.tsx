@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
-import { Settings } from 'lucide-react';
 import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import AppNavbar from '@/components/AppNavbar';
@@ -726,7 +725,6 @@ function GroupDashboardContent() {
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
       <AppNavbar
-        backHref="/groups"
         center={
           group?.name ? (
             <span className="font-semibold text-[var(--text-primary)] text-sm sm:text-base truncate max-w-[200px] sm:max-w-xs">
@@ -737,19 +735,14 @@ function GroupDashboardContent() {
         maxWidth="5xl"
         extraActions={
           isAdmin ? (
-            <>
-              <Button variant="secondary" size="sm" href={`/groups/${groupId}/admin`}>
-                Admin Panel
-              </Button>
-              {/* Settings icon link: icon-only nav link — left as raw Link with lucide icon */}
-              <Link
-                href={`/groups/${groupId}/manage`}
-                title="Group Settings"
-                className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
-              >
-                <Settings className="h-5 w-5" />
+            <div className="flex items-center gap-4">
+              <Link href={`/groups/${groupId}/admin`} className="pb-1 text-sm font-medium text-[var(--text-muted)] border-b-2 border-transparent hover:text-[var(--text-primary)] transition-colors">
+                Matches
               </Link>
-            </>
+              <Link href={`/groups/${groupId}/manage`} className="pb-1 text-sm font-medium text-[var(--text-muted)] border-b-2 border-transparent hover:text-[var(--text-primary)] transition-colors">
+                Group Info
+              </Link>
+            </div>
           ) : undefined
         }
       />
