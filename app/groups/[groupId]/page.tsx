@@ -740,7 +740,7 @@ function GroupDashboardContent() {
                 Matches
               </Link>
               <Link href={`/groups/${groupId}/manage`} className="pb-1 text-sm font-medium text-[var(--text-muted)] border-b-2 border-transparent hover:text-[var(--text-primary)] transition-colors">
-                Group Info
+                Group
               </Link>
             </div>
           ) : undefined

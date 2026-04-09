@@ -308,7 +308,8 @@ function GroupAdminContent() {
         return da - db;
       });
       setCricMatches(mats);
-    } catch {
+    } catch (err) {
+      console.error('[admin] loadCricMatches failed:', err);
       setCricMatches([]);
     } finally {
       setCricLoading(false);
@@ -419,7 +420,8 @@ function GroupAdminContent() {
         )
       );
       toast.success(match.bettingOpen ? 'Betting closed' : 'Betting opened');
-    } catch {
+    } catch (err) {
+      console.error('[admin] handleToggleBetting failed:', err);
       toast.error('Failed to update betting');
     } finally {
       setTogglingBet((p) => ({ ...p, [match.id]: false }));
@@ -777,20 +779,20 @@ function GroupAdminContent() {
             </Link>
           ) : undefined
         }
-        maxWidth="4xl"
+        maxWidth="5xl"
         extraActions={
           <div className="flex items-center gap-4">
             <Link href={`/groups/${groupId}/admin`} className="pb-1 text-sm font-semibold text-[var(--text-primary)] border-b-2 border-blue-500">
               Matches
             </Link>
             <Link href={`/groups/${groupId}/manage`} className="pb-1 text-sm font-medium text-[var(--text-muted)] border-b-2 border-transparent hover:text-[var(--text-primary)] transition-colors">
-              Group Info
+              Group
             </Link>
           </div>
         }
       />
 
-      <main className="max-w-4xl mx-auto px-6 py-8 space-y-10">
+      <main className="max-w-5xl mx-auto px-6 py-8 space-y-10">
 
         {/* ── CricAPI Import ── */}
         <section>

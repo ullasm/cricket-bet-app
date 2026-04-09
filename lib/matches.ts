@@ -294,14 +294,9 @@ export async function declareMatchResult(
   matchId: string,
   groupId: string,
   result: 'team_a' | 'team_b' | 'draw' | 'abandoned',
-  noDrawPolicy: string
+  noDrawPolicy: Match['noDrawPolicy']
 ): Promise<import('./settleMatch').SettlementSummary> {
-  return declareMatchResultEngine(
-    matchId,
-    groupId,
-    result,
-    noDrawPolicy as import('./settleMatch').NoDrawPolicy
-  );
+  return declareMatchResultEngine(matchId, groupId, result, noDrawPolicy);
 }
 
 
@@ -314,6 +309,10 @@ export async function adminUpsertBetForMatch(
   const currentMatch = await getMatchById(matchId);
   if (!currentMatch) {
     throw new Error('Match not found');
+  }
+
+  if (betInput.pickedOutcome === 'draw' && !currentMatch.drawAllowed) {
+    throw new Error('Draw is not allowed for this match');
   }
 
   const shouldResettle = currentMatch.status === 'completed' || currentMatch.status === 'abandoned';
@@ -348,8 +347,8 @@ export async function adminUpsertBetForMatch(
     await settleMatchEngine({
       matchId,
       groupId,
-      result:       currentMatch.result       as import('./settleMatch').MatchResult,
-      noDrawPolicy: currentMatch.noDrawPolicy as import('./settleMatch').NoDrawPolicy,
+      result:       currentMatch.result as Match['result'] & import('./settleMatch').MatchResult,
+      noDrawPolicy: currentMatch.noDrawPolicy,
     });
   }
 }
@@ -372,7 +371,7 @@ export async function adminClearBetForMatch(
   const shouldResettle = currentMatch.status === 'completed' || currentMatch.status === 'abandoned';
 
   if (shouldResettle) {
-    await rollbackSettledMatch(matchId, groupId);
+    await rollbackSettlement(matchId, groupId);
   }
 
   await deleteDoc(doc(db, 'bets', existingBet.id));

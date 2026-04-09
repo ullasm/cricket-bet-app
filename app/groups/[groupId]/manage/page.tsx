@@ -96,7 +96,8 @@ function ManageContent() {
       setGroup((g) => (g ? { ...g, name } : g));
       setEditing(false);
       toast.success('Group name updated');
-    } catch {
+    } catch (err) {
+      console.error('[manage] updateGroupName failed:', err);
       toast.error('Failed to update name');
     } finally {
       setSavingName(false);
@@ -109,7 +110,8 @@ function ManageContent() {
       const newCode = await regenerateInviteCode(groupId);
       setInviteCode(newCode);
       toast.success('New invite link generated. Old link is now invalid.');
-    } catch {
+    } catch (err) {
+      console.error('[manage] regenerateInviteCode failed:', err);
       toast.error('Failed to regenerate link');
     } finally {
       setRegenerating(false);
@@ -120,7 +122,8 @@ function ManageContent() {
     try {
       await copyText(getInviteLink(inviteCode));
       toast.success('Copied!');
-    } catch {
+    } catch (err) {
+      console.error('[manage] copyInviteLink failed:', err);
       toast.error('Could not copy the invite link');
     }
   }
@@ -140,7 +143,8 @@ function ManageContent() {
       await promoteMember(groupId, m.userId);
       toast.success(`${m.displayName} is now an admin`);
       await refreshMembers();
-    } catch {
+    } catch (err) {
+      console.error('[manage] promoteMember failed:', err);
       toast.error('Failed to promote member');
     } finally {
       setMemberLoading(m.userId, false);
@@ -153,7 +157,8 @@ function ManageContent() {
       await demoteMember(groupId, m.userId);
       toast.success(`${m.displayName} is now a member`);
       await refreshMembers();
-    } catch {
+    } catch (err) {
+      console.error('[manage] demoteMember failed:', err);
       toast.error('Failed to demote member');
     } finally {
       setMemberLoading(m.userId, false);
@@ -169,7 +174,8 @@ function ManageContent() {
       await removeMember(groupId, m.userId);
       toast.success(`${m.displayName} removed from group`);
       await refreshMembers();
-    } catch {
+    } catch (err) {
+      console.error('[manage] removeMember failed:', err);
       toast.error('Failed to remove member');
     } finally {
       setMemberLoading(m.userId, false);
@@ -216,7 +222,8 @@ function ManageContent() {
       setEditingMemberId(null);
       setMemberNameInput('');
       await refreshMembers();
-    } catch {
+    } catch (err) {
+      console.error('[manage] updateMemberDisplayName failed:', err);
       toast.error('Failed to update member name');
     } finally {
       setMemberLoading(member.userId, false);
@@ -355,24 +362,24 @@ function ManageContent() {
             </Link>
           ) : undefined
         }
-        maxWidth="3xl"
+        maxWidth="5xl"
         extraActions={
           <div className="flex items-center gap-4">
             <Link href={`/groups/${groupId}/admin`} className="pb-1 text-sm font-medium text-[var(--text-muted)] border-b-2 border-transparent hover:text-[var(--text-primary)] transition-colors">
               Matches
             </Link>
             <Link href={`/groups/${groupId}/manage`} className="pb-1 text-sm font-semibold text-[var(--text-primary)] border-b-2 border-blue-500">
-              Group Info
+              Group
             </Link>
           </div>
         }
       />
 
-      <main className="max-w-3xl mx-auto px-6 py-8 space-y-6">
+      <main className="max-w-5xl mx-auto px-6 py-8 space-y-6">
 
-        {/* ── Section 1: Group Info ── */}
+        {/* ── Section 1: Group ── */}
         <Card variant="default" className="space-y-4">
-          <SectionHeader title="Group Info" mb="mb-0" />
+          <SectionHeader title="Group" mb="mb-0" />
 
           {editing ? (
             <div className="flex gap-2">

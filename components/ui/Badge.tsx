@@ -22,6 +22,7 @@ export type BadgeVariant =
   | 'bet-lost'
   | 'bet-pending'
   | 'bet-refunded'
+  | 'bet-locked'
   | 'role-admin'
   | 'role-member'
   | 'format'
@@ -38,6 +39,7 @@ const variantClasses: Record<BadgeVariant, string> = {
   'bet-lost':        'bg-red-500/20 text-red-400',
   'bet-pending':     'bg-yellow-500/20 text-yellow-400',
   'bet-refunded':    'bg-slate-600/40 text-[var(--text-muted)]',
+  'bet-locked':      'bg-blue-500/15 text-blue-400',
   'role-admin':      'bg-yellow-500/20 text-yellow-400',
   'role-member':     'bg-[var(--bg-hover)] text-[var(--text-muted)]',
   'format':          'bg-[var(--bg-input)] text-[var(--text-secondary)]',
@@ -81,7 +83,7 @@ export function matchStatusVariant(
 
 /** Convenience helper: maps a bet status string to the correct Badge variant */
 export function betStatusVariant(
-  status: 'pending' | 'won' | 'lost' | 'refunded',
+  status: 'pending' | 'won' | 'lost' | 'refunded' | 'locked',
 ): BadgeVariant {
   return `bet-${status}` as BadgeVariant;
 }

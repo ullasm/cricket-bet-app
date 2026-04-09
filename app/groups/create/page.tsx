@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { ChevronLeft } from 'lucide-react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
@@ -11,6 +12,7 @@ import { createGroup } from '@/lib/groups';
 import { Button, Card, FormInput } from '@/components/ui';
 
 function CreateGroupContent() {
+  const router = useRouter();
   const { user, userProfile } = useAuth();
   const [groupName, setGroupName] = useState('');
   const [creating, setCreating] = useState(false);

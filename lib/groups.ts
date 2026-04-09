@@ -270,8 +270,6 @@ const BATCH_LIMIT = 499;
  * For true atomicity across >500 ops you need Cloud Functions + admin SDK.
  */
 async function flushBatches(batches: WriteBatch[], context: string): Promise<void> {
-  const errors: Array<{ batchIndex: number; error: unknown }> = [];
-
   for (let i = 0; i < batches.length; i++) {
     try {
       await batches[i].commit();
@@ -280,20 +278,12 @@ async function flushBatches(batches: WriteBatch[], context: string): Promise<voi
         `[deleteGroupCascade] Batch ${i + 1}/${batches.length} failed (${context}):`,
         err
       );
-      errors.push({ batchIndex: i, error: err });
+      throw new Error(
+        `[deleteGroupCascade] Batch ${i + 1} of ${batches.length} failed — ` +
+        `stopping to minimise partial writes. Context: ${context}. ` +
+        `Detail: ${err instanceof Error ? err.message : String(err)}`
+      );
     }
-  }
-
-  if (errors.length > 0) {
-    const messages = errors
-      .map(({ batchIndex, error }) =>
-        `Batch ${batchIndex + 1}: ${error instanceof Error ? error.message : String(error)}`
-      )
-      .join('; ');
-    throw new Error(
-      `[deleteGroupCascade] ${errors.length} of ${batches.length} batch(es) failed — ` +
-      `partial data may remain. Context: ${context}. Details: ${messages}`
-    );
   }
 }
 
