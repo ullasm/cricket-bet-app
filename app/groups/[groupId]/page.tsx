@@ -727,7 +727,13 @@ function GroupDashboardContent() {
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
       <AppNavbar
         backHref="/groups"
-        subtitle={group?.name}
+        center={
+          group?.name ? (
+            <span className="font-semibold text-[var(--text-primary)] text-sm sm:text-base truncate max-w-[200px] sm:max-w-xs">
+              {group.name}
+            </span>
+          ) : undefined
+        }
         maxWidth="5xl"
         extraActions={
           isAdmin ? (

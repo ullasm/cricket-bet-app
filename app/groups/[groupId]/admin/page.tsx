@@ -770,7 +770,14 @@ function GroupAdminContent() {
       {/* Navbar */}
       <AppNavbar
         backHref={`/groups/${groupId}`}
-        subtitle={group ? `${group.name} · Admin` : undefined}
+        center={
+          group?.name ? (
+            <span className="font-semibold text-sm sm:text-base text-[var(--text-primary)] truncate max-w-xs">
+              {group.name}
+              <span className="ml-2 text-xs font-medium text-[var(--text-muted)]">· Admin</span>
+            </span>
+          ) : undefined
+        }
         maxWidth="4xl"
       />
 

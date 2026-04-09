@@ -183,7 +183,11 @@ function BetContent() {
   const sharedHeader = (
     <AppNavbar
       backHref={`/groups/${groupId}`}
-      subtitle="Place Bet"
+      center={
+        <span className="font-semibold text-sm sm:text-base text-[var(--text-primary)] truncate max-w-xs">
+          {match ? `${match.teamA} vs ${match.teamB}` : 'Place Bet'}
+        </span>
+      }
       maxWidth="lg"
     />
   );

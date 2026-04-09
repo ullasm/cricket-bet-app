@@ -1,6 +1,5 @@
 import type { FC, ReactNode } from 'react';
 import Link from 'next/link';
-import { ChevronLeft } from 'lucide-react';
 
 type MaxWidth = 'sm' | 'md' | 'lg' | 'xl' | '3xl' | '4xl' | '5xl';
 
@@ -19,6 +18,8 @@ interface PageHeaderProps {
   backHref?: string;
   /** Small subtitle rendered below the logo (e.g. "My Group · Settings") */
   subtitle?: string;
+  /** Content rendered in the absolute center of the header (e.g. group name). */
+  center?: ReactNode;
   /** Slot rendered on the right side of the header (ThemeSwitcher, avatar, action buttons…) */
   actions?: ReactNode;
   /** Inner container max-width. Defaults to '5xl'. */
@@ -34,6 +35,7 @@ interface PageHeaderProps {
 export const PageHeader: FC<PageHeaderProps> = ({
   backHref,
   subtitle,
+  center,
   actions,
   maxWidth = '5xl',
   logoClassName,
@@ -43,18 +45,17 @@ export const PageHeader: FC<PageHeaderProps> = ({
     <header
       className={`bg-[var(--bg-card)] border-b border-[var(--border)] px-6 py-4 ${className}`}
     >
-      <div className={`${maxWidthClasses[maxWidth]} mx-auto flex items-center justify-between gap-4`}>
-        {/* Left side */}
+      {/*
+       * 3-column grid: [left | center | right]
+       * Left and right columns are `1fr` each so they take equal space,
+       * which forces the auto-width center column to always sit exactly
+       * in the middle of the header regardless of content width.
+       */}
+      <div className={`${maxWidthClasses[maxWidth]} mx-auto grid grid-cols-[1fr_auto_1fr] items-center gap-4`}>
+
+        {/* Left: back chevron + logo */}
         <div className="flex items-center gap-3 min-w-0">
-          {backHref && (
-            <Link
-              href={backHref}
-              className="shrink-0 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
-              aria-label="Go back"
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </Link>
-          )}
+
           <div className="min-w-0">
             <Link
               href="/"
@@ -70,12 +71,16 @@ export const PageHeader: FC<PageHeaderProps> = ({
           </div>
         </div>
 
-        {/* Right side */}
-        {actions && (
-          <div className="flex items-center gap-3 shrink-0">
-            {actions}
-          </div>
-        )}
+        {/* Center: group name or any centered content */}
+        <div className="flex items-center justify-center min-w-0 px-2">
+          {center}
+        </div>
+
+        {/* Right: actions (aligned end) */}
+        <div className="flex items-center justify-end gap-3 shrink-0">
+          {actions}
+        </div>
+
       </div>
     </header>
   );

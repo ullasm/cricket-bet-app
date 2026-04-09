@@ -349,7 +349,14 @@ function ManageContent() {
       {/* Navbar */}
       <AppNavbar
         backHref={`/groups/${groupId}`}
-        subtitle={group ? `${group.name} · Settings` : undefined}
+        center={
+          group?.name ? (
+            <span className="font-semibold text-sm sm:text-base text-[var(--text-primary)] truncate max-w-xs">
+              {group.name}
+              <span className="ml-2 text-xs font-medium text-[var(--text-muted)]">· Settings</span>
+            </span>
+          ) : undefined
+        }
         maxWidth="3xl"
       />
 

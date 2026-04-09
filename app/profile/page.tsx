@@ -128,7 +128,15 @@ function ProfileContent() {
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
-      <AppNavbar backHref="/groups" subtitle="My Profile" maxWidth="3xl" />
+      <AppNavbar
+        backHref="/groups"
+        center={
+          <span className="font-semibold text-sm sm:text-base text-[var(--text-primary)]">
+            My Profile
+          </span>
+        }
+        maxWidth="3xl"
+      />
 
       <main className="max-w-3xl mx-auto px-6 py-8 space-y-6">
 
