@@ -1,6 +1,6 @@
 'use client';
 
-import { type ReactNode, useEffect, useRef, useState } from 'react';
+import { type ReactNode, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { LogOut, User, Palette } from 'lucide-react';
@@ -14,6 +14,7 @@ type MaxWidth = 'sm' | 'md' | 'lg' | 'xl' | '3xl' | '4xl' | '5xl';
 
 interface AppNavbarProps {
   backHref?: string;
+  backIsHistory?: boolean;
   subtitle?: string;
   center?: ReactNode;
   maxWidth?: MaxWidth;
@@ -38,6 +39,7 @@ const THEMES: { value: Theme; label: string; icon: string }[] = [
  */
 export default function AppNavbar({
   backHref,
+  backIsHistory = false,
   subtitle,
   center,
   maxWidth = '5xl',
@@ -47,19 +49,7 @@ export default function AppNavbar({
   const { userProfile } = useAuth();
   const { theme, setTheme } = useTheme();
   const [open, setOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    if (!open) return;
-    function handleClickOutside(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [open]);
 
   async function handleLogout() {
     setOpen(false);
@@ -77,7 +67,15 @@ export default function AppNavbar({
 
       {/* Avatar dropdown */}
       {userProfile && (
-        <div ref={menuRef} className="relative">
+        <div className="relative">
+
+          {/* Invisible backdrop — sits behind the panel, closes dropdown on any outside click */}
+          {open && (
+            <div
+              className="fixed inset-0 z-[49]"
+              onClick={() => setOpen(false)}
+            />
+          )}
 
           {/* Trigger button */}
           <button
@@ -102,9 +100,9 @@ export default function AppNavbar({
             </svg>
           </button>
 
-          {/* Dropdown panel */}
+          {/* Dropdown panel — z-[50] sits above the z-[49] backdrop so clicks land here */}
           {open && (
-            <div className="absolute right-0 top-full mt-2 w-56 z-50 bg-[var(--bg-card)] border border-[var(--border)] rounded-xl shadow-xl overflow-hidden">
+            <div className="absolute right-0 top-full mt-2 w-56 z-[50] bg-[var(--bg-card)] border border-[var(--border)] rounded-xl shadow-xl overflow-hidden">
 
               {/* User identity */}
               <div className="flex items-center gap-3 px-4 py-3 border-b border-[var(--border)]">
@@ -181,6 +179,7 @@ export default function AppNavbar({
   return (
     <PageHeader
       backHref={backHref}
+      backIsHistory={backIsHistory}
       subtitle={subtitle}
       center={center}
       maxWidth={maxWidth}

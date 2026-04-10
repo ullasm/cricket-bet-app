@@ -129,7 +129,7 @@ function ProfileContent() {
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
       <AppNavbar
-        backHref="/groups"
+        backIsHistory
         center={
           <span className="font-semibold text-sm sm:text-base text-[var(--text-primary)]">
             My Profile

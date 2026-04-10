@@ -542,6 +542,7 @@ function GroupDashboardContent() {
         setLoading(false);
       },
       (err) => {
+        if (err.code === 'permission-denied') return;
         console.error('[GroupDashboard] matches listener error:', err);
         toast.error('Failed to load matches');
         setLoading(false);
@@ -571,6 +572,7 @@ function GroupDashboardContent() {
         setMyBets(myBetsMap);
       },
       (err) => {
+        if (err.code === 'permission-denied') return;
         console.error('[GroupDashboard] bets listener error:', err);
         toast.error('Failed to load bets');
       }
@@ -593,6 +595,7 @@ function GroupDashboardContent() {
         if (mine) setMyMember(mine);
       },
       (err) => {
+        if (err.code === 'permission-denied') return;
         console.error('[GroupDashboard] members listener error:', err);
         toast.error('Failed to keep leaderboard in sync');
       }

@@ -1,5 +1,8 @@
+'use client';
+
 import type { FC, ReactNode } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { ChevronLeft } from 'lucide-react';
 
 type MaxWidth = 'sm' | 'md' | 'lg' | 'xl' | '3xl' | '4xl' | '5xl';
@@ -16,6 +19,8 @@ const maxWidthClasses: Record<MaxWidth, string> = {
 
 interface PageHeaderProps {
   backHref?: string;
+  /** If true, the back button calls router.back() instead of navigating to backHref */
+  backIsHistory?: boolean;
   subtitle?: string;
   center?: ReactNode;
   actions?: ReactNode;
@@ -26,6 +31,7 @@ interface PageHeaderProps {
 
 export const PageHeader: FC<PageHeaderProps> = ({
   backHref,
+  backIsHistory = false,
   subtitle,
   center,
   actions,
@@ -33,6 +39,7 @@ export const PageHeader: FC<PageHeaderProps> = ({
   logoClassName,
   className = '',
 }) => {
+  const router = useRouter();
   const logo = (
     <Link
       href="/"
@@ -42,12 +49,13 @@ export const PageHeader: FC<PageHeaderProps> = ({
     </Link>
   );
 
-  const backButton = backHref ? (
-    <Link
-      href={backHref}
-      aria-label="Go back"
-      className="shrink-0 flex items-center justify-center h-8 w-8 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors"
-    >
+  const backBtnClass = "shrink-0 flex items-center justify-center h-8 w-8 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors";
+  const backButton = backIsHistory ? (
+    <button onClick={() => router.back()} aria-label="Go back" className={backBtnClass}>
+      <ChevronLeft className="h-5 w-5" />
+    </button>
+  ) : backHref ? (
+    <Link href={backHref} aria-label="Go back" className={backBtnClass}>
       <ChevronLeft className="h-5 w-5" />
     </Link>
   ) : null;
