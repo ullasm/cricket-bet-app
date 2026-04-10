@@ -673,6 +673,12 @@ function GroupDashboardContent() {
     .sort((a, b) => a.matchDate.toMillis() - b.matchDate.toMillis());
   const pastMatches = matches.filter((m) => isPastMatch(m, today));
 
+  // Last 2 past matches where the current user placed a bet
+  const recentBetMatches = pastMatches
+    .filter((m) => myBets[m.id])
+    .sort((a, b) => b.matchDate.toMillis() - a.matchDate.toMillis())
+    .slice(0, 2);
+
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
       <AppNavbar
@@ -695,6 +701,24 @@ function GroupDashboardContent() {
 
       {/* Content */}
       <main className="max-w-5xl mx-auto px-6 py-8 space-y-8">
+
+        {/* Recent bets */}
+        {recentBetMatches.length > 0 && (
+          <section>
+            <SectionHeader title="Your Recent Bets" mb="mb-3" />
+            <div className="space-y-3">
+              {recentBetMatches.map((m) => (
+                <PastMatchCard
+                  key={m.id}
+                  match={m}
+                  bets={allBets[m.id] ?? []}
+                  memberNames={memberNames}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+
         {/* Live & Today */}
         <section>
           <SectionHeader title="Live &amp; Today's Matches" mb="mb-3" />
