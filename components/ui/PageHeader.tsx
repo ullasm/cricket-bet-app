@@ -53,7 +53,7 @@ export const PageHeader: FC<PageHeaderProps> = ({
   ) : null;
 
   return (
-    <header className={`bg-[var(--bg-card)] border-b border-[var(--border)] ${className}`}>
+    <header className={`sticky top-0 z-40 bg-[var(--bg-card)] border-b border-[var(--border)] ${className}`}>
       <div className={`${maxWidthClasses[maxWidth]} mx-auto`}>
 
         {/* ── Desktop: single row ── */}
