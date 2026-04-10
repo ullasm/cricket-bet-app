@@ -660,12 +660,14 @@ function GroupDashboardContent() {
       m.status === 'live' ||
       (m.status === 'upcoming' && isSameDay(m.matchDate.toDate(), today))
   );
-  const upcomingMatches = matches.filter(
-    (m) =>
-      m.status === 'upcoming' &&
-      m.matchDate.toDate() > today &&
-      !isSameDay(m.matchDate.toDate(), today)
-  );
+  const upcomingMatches = matches
+    .filter(
+      (m) =>
+        m.status === 'upcoming' &&
+        m.matchDate.toDate() > today &&
+        !isSameDay(m.matchDate.toDate(), today)
+    )
+    .sort((a, b) => a.matchDate.toMillis() - b.matchDate.toMillis());
   const pastMatches = matches.filter((m) => isPastMatch(m, today));
 
   return (
