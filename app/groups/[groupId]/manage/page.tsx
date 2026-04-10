@@ -379,8 +379,6 @@ function ManageContent() {
 
         {/* ── Section 1: Group ── */}
         <Card variant="default" className="space-y-4">
-          <SectionHeader title="Group" mb="mb-0" />
-
           {editing ? (
             <div className="flex gap-2">
               <FormInput
