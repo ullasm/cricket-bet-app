@@ -450,6 +450,14 @@ function MatchCard({ match, groupId, myBet, bets, memberNames, currentUserId, on
             </div>
           )}
           {!hasSettledSummary && bets.length > 0 && (() => {
+            const uniqueSides = new Set(bets.map((b) => b.pickedOutcome));
+            if (uniqueSides.size < 2) {
+              return (
+                <div className="border-t border-[var(--border)] pt-3">
+                  <p className="text-xs text-[var(--text-muted)] italic">No bets on the other side — no points will change regardless of result.</p>
+                </div>
+              );
+            }
             const outcomes = computePotentialOutcomes(match, bets, memberNames);
             if (outcomes.length === 0) return null;
             return (
