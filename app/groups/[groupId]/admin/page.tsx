@@ -66,7 +66,8 @@ function formatCricDate(dateStr: string): string {
 function parseTeams(matchName: string): { teamA: string; teamB: string } {
   const parts = matchName.split(/ vs | v /i);
   if (parts.length >= 2) {
-    return { teamA: parts[0].trim(), teamB: parts[1].trim() };
+    const teamB = parts[1].split(',')[0].trim();
+    return { teamA: parts[0].trim(), teamB };
   }
   return { teamA: matchName.trim(), teamB: 'TBD' };
 }
