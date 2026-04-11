@@ -11,6 +11,7 @@ import {
   orderBy,
   limit,
   serverTimestamp,
+  Timestamp,
 } from 'firebase/firestore';
 import type { Timestamp as TimestampType } from 'firebase/firestore';
 import { db } from './firebase';
@@ -110,6 +111,13 @@ export async function updateMatch(
 
 export async function deleteMatch(matchId: string): Promise<void> {
   await deleteDoc(doc(db, 'matches', matchId));
+}
+
+export async function closeBettingForMatch(matchId: string): Promise<void> {
+  await updateDoc(doc(db, 'matches', matchId), {
+    bettingOpen: false,
+    bettingClosedAt: Timestamp.now(),
+  });
 }
 
 // -- bet functions ------------------------------------------------------------

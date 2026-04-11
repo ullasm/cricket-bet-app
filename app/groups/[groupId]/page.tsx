@@ -13,7 +13,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { logoutUser } from '@/lib/auth';
 import { getGroupById, getUserGroupMember } from '@/lib/groups';
 import type { Group, GroupMember } from '@/lib/groups';
-import { upsertUserBetForMatch, removeUserBetForMatch } from '@/lib/matches';
+import { upsertUserBetForMatch, removeUserBetForMatch, closeBettingForMatch } from '@/lib/matches';
 import type { Match, Bet } from '@/lib/matches';
 import { copyText, getInviteLink } from '@/lib/share';
 import { Spinner, Button, Badge, Card, Modal, SectionHeader, PageHeader, Avatar, matchStatusVariant, betStatusVariant } from '@/components/ui';
@@ -631,6 +631,14 @@ function GroupDashboardContent() {
         );
         setMatches(fetchedMatches);
         setLoading(false);
+
+        // Auto-close betting for any match whose start time has passed
+        const now = new Date();
+        fetchedMatches.forEach((m) => {
+          if (m.bettingOpen && m.matchDate.toDate() <= now) {
+            closeBettingForMatch(m.id).catch(() => {/* another client may have already closed it */});
+          }
+        });
       },
       (err) => {
         if (err.code === 'permission-denied') return;

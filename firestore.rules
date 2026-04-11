@@ -58,7 +58,13 @@ service cloud.firestore {
     match /matches/{matchId} {
       allow read: if isSignedIn() && isGroupMember(resource.data.groupId);
       allow create: if isGroupAdmin(request.resource.data.groupId);
-      allow update: if isGroupAdmin(resource.data.groupId);
+      allow update: if isGroupAdmin(resource.data.groupId) || (
+        isGroupMember(resource.data.groupId) &&
+        resource.data.bettingOpen == true &&
+        request.resource.data.bettingOpen == false &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['bettingOpen', 'bettingClosedAt']) &&
+        resource.data.matchDate <= request.time
+      );
       allow delete: if isGroupAdmin(resource.data.groupId);
     }
 
