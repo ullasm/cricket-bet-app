@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { X } from 'lucide-react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
@@ -10,13 +10,12 @@ import { db } from '@/lib/firebase';
 import AppNavbar, { type NavTab } from '@/components/AppNavbar';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { useAuth } from '@/lib/AuthContext';
-import { logoutUser } from '@/lib/auth';
 import { getGroupById, getUserGroupMember } from '@/lib/groups';
 import type { Group, GroupMember } from '@/lib/groups';
 import { upsertUserBetForMatch, removeUserBetForMatch, closeBettingForMatch } from '@/lib/matches';
 import type { Match, Bet } from '@/lib/matches';
 import { copyText, getInviteLink } from '@/lib/share';
-import { Spinner, Button, Badge, Card, Modal, SectionHeader, PageHeader, Avatar, matchStatusVariant, betStatusVariant } from '@/components/ui';
+import { Spinner, Button, Badge, Card, Modal, SectionHeader, Avatar, matchStatusVariant, betStatusVariant } from '@/components/ui';
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -625,8 +624,7 @@ function PastMatchCard({ match, bets, memberNames }: PastMatchCardProps) {
 function GroupDashboardContent() {
   const params = useParams<{ groupId: string }>();
   const groupId = params.groupId;
-  const router = useRouter();
-  const { user, userProfile } = useAuth();
+  const { user } = useAuth();
 
   const [group, setGroup] = useState<Group | null>(null);
   const [myMember, setMyMember] = useState<GroupMember | null | undefined>(undefined);
@@ -881,7 +879,7 @@ function GroupDashboardContent() {
       />
 
       {/* Content */}
-      <main className="max-w-5xl mx-auto px-6 py-8 space-y-8">
+      <main className="max-w-5xl mx-auto px-2 py-8 space-y-8">
 
         {/* Recent bets */}
         {recentBetMatches.length > 0 && (
