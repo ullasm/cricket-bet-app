@@ -47,27 +47,21 @@
       ]
     },
     {
-      "_comment": "getUserGroups: collectionGroup('members') + where('userId'). Collection-group queries always require an explicit index.",
-      "collectionGroup": "members",
-      "queryScope": "COLLECTION_GROUP",
+      "_comment": "getMasterMatchesBySeriesId: where('sourceApiId') + orderBy('startsAt')",
+      "collectionGroup": "masterMatch",
+      "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "userId", "order": "ASCENDING" }
+        { "fieldPath": "sourceApiId", "order": "ASCENDING" },
+        { "fieldPath": "startsAt",    "order": "ASCENDING" }
       ]
     },
     {
-      "_comment": "Group dashboard leaderboard onSnapshot + getGroupMembers: orderBy('totalPoints', 'desc') on members subcollection.",
-      "collectionGroup": "members",
+      "_comment": "getActiveMatches with ordering: where('matchEnded') + orderBy('startsAt')",
+      "collectionGroup": "masterMatch",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "totalPoints", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "_comment": "getAllUsers: orderBy('totalPoints', 'desc'). Firestore auto-creates single-field indexes, but listing here makes it deployable via CLI.",
-      "collectionGroup": "users",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "totalPoints", "order": "DESCENDING" }
+        { "fieldPath": "matchEnded", "order": "ASCENDING" },
+        { "fieldPath": "startsAt",   "order": "ASCENDING" }
       ]
     }
   ],

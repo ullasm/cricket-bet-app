@@ -54,6 +54,22 @@ service cloud.firestore {
     match /systemCache/{cacheId} {
       allow read, write: if true;
     }
+
+    // Master series — superAdmin writes, any signed-in user reads (for admin UI)
+    match /masterSeries/{seriesId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.superAdmin == true;
+    }
+
+    // Master matches — read/written by API routes (server-side, no auth session)
+    match /masterMatch/{matchId} {
+      allow read, write: if true;
+    }
+
+    // Source data — read/written by API routes only
+    match /sourceData/{docId} {
+      allow read, write: if true;
+    }
     // Matches — scoped to group membership
     match /matches/{matchId} {
       allow read: if isSignedIn() && isGroupMember(resource.data.groupId);

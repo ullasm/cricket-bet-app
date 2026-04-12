@@ -3,7 +3,7 @@
 import { type ReactNode, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { LogOut, User } from 'lucide-react';
+import { LogOut, User, ShieldCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '@/lib/AuthContext';
 import { logoutUser } from '@/lib/auth';
@@ -142,6 +142,16 @@ export default function AppNavbar({
               <User className="h-[15px] w-[15px] opacity-70 shrink-0" />
               My Profile
             </Link>
+            {userProfile.superAdmin && (
+              <Link
+                href="/admin"
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-2 px-2.5 py-[7px] text-[13px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] rounded-lg transition-colors"
+              >
+                <ShieldCheck className="h-[15px] w-[15px] opacity-70 shrink-0" />
+                Admin
+              </Link>
+            )}
           </div>
 
           {/* Theme */}

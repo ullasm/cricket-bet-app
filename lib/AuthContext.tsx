@@ -13,6 +13,7 @@ export interface UserProfile {
   role: 'admin' | 'member';
   avatarColor: string;
   groupIds?: string[];
+  superAdmin?: boolean;
 }
 
 interface AuthContextValue {
