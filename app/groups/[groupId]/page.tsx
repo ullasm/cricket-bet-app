@@ -356,6 +356,9 @@ function MatchCard({ match, groupId, myBet, bets, memberNames, currentUserId, on
               )}
             </div>
           </div>
+          {!selectedOutcome && (
+            <p className="text-center text-xs text-[var(--text-muted)]">Pick a team above to continue</p>
+          )}
           <Button
             type="button"
             variant="primary"
@@ -364,7 +367,7 @@ function MatchCard({ match, groupId, myBet, bets, memberNames, currentUserId, on
             disabled={!selectedOutcome || stake < 1}
             onPointerDown={(e) => e.preventDefault()}
             onClick={handleChangeBet}
-            className="w-full"
+            className={`w-full transition-opacity ${!selectedOutcome || stake < 1 ? 'opacity-30' : 'opacity-100'}`}
           >
             {updatingBet ? 'Saving…' : myBet ? 'Confirm change' : 'Confirm bet'}
           </Button>
