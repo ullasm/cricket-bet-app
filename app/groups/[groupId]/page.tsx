@@ -334,8 +334,9 @@ function MatchCard({ match, groupId, myBet, bets, memberNames, currentUserId, on
             </div>
             <div className="relative">
               <input
-                type="number"
-                min={1}
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 value={stakeInput}
                 onChange={(e) => {
                   const raw = e.target.value;
@@ -361,6 +362,7 @@ function MatchCard({ match, groupId, myBet, bets, memberNames, currentUserId, on
             size="lg"
             loading={updatingBet}
             disabled={!selectedOutcome || stake < 1}
+            onPointerDown={(e) => e.preventDefault()}
             onClick={handleChangeBet}
             className="w-full"
           >
