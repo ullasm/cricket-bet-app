@@ -328,7 +328,7 @@ function MatchCard({ match, groupId, myBet, bets, memberNames, currentUserId, on
                 </span>
                 {winningEntries.length > 0 ? (
                   <span className="rounded-full bg-green-500/15 px-2.5 py-1 text-xs font-medium text-green-400">
-                    Won by: {winningEntries.map((entry) => entry.displayName).join(', ')}
+                    Won by: {winningEntries.map((entry) => memberNames[entry.userId] ?? 'Unknown').join(', ')}
                   </span>
                 ) : refundedEntries.length > 0 ? (
                   <span className="rounded-full bg-[var(--bg-card)] px-2.5 py-1 text-xs font-medium text-[var(--text-muted)]">
@@ -345,7 +345,7 @@ function MatchCard({ match, groupId, myBet, bets, memberNames, currentUserId, on
                 )}
                 {losingEntries.length > 0 && (
                   <span className="rounded-full bg-red-500/15 px-2.5 py-1 text-xs font-medium text-red-400">
-                    Lost by: {losingEntries.map((entry) => entry.displayName).join(', ')}
+                    Lost by: {losingEntries.map((entry) => memberNames[entry.userId] ?? 'Unknown').join(', ')}
                   </span>
                 )}
               </div>
