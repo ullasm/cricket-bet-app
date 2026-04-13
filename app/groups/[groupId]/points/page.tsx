@@ -15,6 +15,8 @@ import { computeSettlements, acknowledgeSettlement } from '@/lib/settlements';
 import type { ComputedSettlement, Settlement } from '@/lib/settlements';
 import { Spinner, Badge, Card, Avatar, SectionHeader } from '@/components/ui';
 
+const showSettlements = process.env.NEXT_PUBLIC_SHOW_SETTLEMENTS === 'true';
+
 function PointsContent() {
   const params = useParams<{ groupId: string }>();
   const groupId = params.groupId;
@@ -207,7 +209,7 @@ function PointsContent() {
         </Card>
 
         {/* Settlements */}
-        <Card variant="default">
+        {showSettlements && <Card variant="default">
           <SectionHeader title="Settlements" mb="mb-4" />
           {allSettlementRows.length === 0 ? (
             <p className="text-[var(--text-muted)] text-sm text-center">All settled up!</p>
@@ -287,7 +289,7 @@ function PointsContent() {
               </table>
             </div>
           )}
-        </Card>
+        </Card>}
 
       </main>
     </div>
