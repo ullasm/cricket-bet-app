@@ -67,7 +67,7 @@ function ManageContent() {
         setGroup(g);
         setInviteCode(g?.inviteCode ?? '');
         setNameInput(g?.name ?? '');
-        setMembers(mems);
+        setMembers([...mems].sort((a, b) => a.displayName.localeCompare(b.displayName)));
       })
       .catch((err) => {
         if (cancelled) return;
@@ -128,7 +128,7 @@ function ManageContent() {
 
   async function refreshMembers() {
     const mems = await getGroupMembers(groupId);
-    setMembers(mems);
+    setMembers([...mems].sort((a, b) => a.displayName.localeCompare(b.displayName)));
   }
 
   function setMemberLoading(userId: string, val: boolean) {
@@ -529,13 +529,6 @@ function ManageContent() {
                       {m.role === 'admin' ? 'Admin' : 'Member'}
                     </Badge>
                   </div>
-
-                  {/* Points — admin only */}
-                  {isAdmin && (
-                    <span className="text-sm font-semibold text-green-400 shrink-0">
-                      {m.totalPoints} pts
-                    </span>
-                  )}
 
                   {/* Actions — admin only, not shown for self */}
                   {isAdmin && !isMe && (
