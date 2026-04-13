@@ -470,9 +470,9 @@ function MatchCard({ match, groupId, myBet, bets, memberNames, currentUserId, on
                 {outcomes.map(({ label, deltas }) => (
                   <div key={label} className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
                     <span className="font-medium text-[var(--text-primary)] shrink-0">{label} wins:</span>
-                    {deltas.map(({ name, delta }) => (
+                    {deltas.map(({ name, delta }, i) => (
                       <span
-                        key={name}
+                        key={`${name}-${i}`}
                         className={delta >= 0 ? 'text-green-400' : 'text-red-400'}
                       >
                         {name} {delta >= 0 ? `+${delta}` : delta}

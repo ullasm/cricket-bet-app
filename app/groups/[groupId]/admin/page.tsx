@@ -14,8 +14,8 @@ import { getGroupById, getUserGroupMember, getGroupMembers } from '@/lib/groups'
 import type { Group, GroupMember } from '@/lib/groups';
 import { getMatches, createMatch, declareMatchResult, updateMatch, deleteMatch, getGroupBetsForMatch, adminUpsertBetForMatch, adminClearBetForMatch } from '@/lib/matches';
 import type { Match, Bet } from '@/lib/matches';
-import { getCricketMatches } from '@/lib/cricapi';
-import type { CricMatch } from '@/lib/cricapi';
+import { getActiveMatches } from '@/lib/masterMatches';
+import type { MasterMatch } from '@/lib/masterMatches';
 import { Spinner, Button, Badge, Card, FormInput, FormSelect, FormCheckbox, Modal, SectionHeader, PageHeader, Avatar, CenteredCard, matchStatusVariant } from '@/components/ui';
 
 type ResultOption = 'team_a' | 'team_b' | 'draw' | 'abandoned';
@@ -101,6 +101,13 @@ function parseDateFromStatus(status: string, fallback: string): Date {
   return new Date(fallback);
 }
 
+function inferFormat(seriesName: string): Match['format'] {
+  const s = seriesName.toLowerCase();
+  if (s.includes('test')) return 'Test';
+  if (s.includes('odi') || s.includes('one day')) return 'ODI';
+  return 'T20';
+}
+
 function getResultLabel(match: Match): string {
   if (match.result === 'team_a') return `${match.teamA} won`;
   if (match.result === 'team_b') return `${match.teamB} won`;
@@ -176,8 +183,8 @@ function GroupAdminContent() {
   const [confirmDelete, setConfirmDelete] = useState<Match | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  // cricapi state
-  const [cricMatches, setCricMatches] = useState<CricMatch[]>([]);
+  // master matches state
+  const [masterMatches, setMasterMatches] = useState<MasterMatch[]>([]);
   const [cricLoading, setCricLoading] = useState(false);
   const [cricFetched, setCricFetched] = useState(false);
   const [addedIds, setAddedIds] = useState<Record<string, 'adding' | 'added'>>({});
@@ -185,15 +192,15 @@ function GroupAdminContent() {
 
   const leagues = useMemo(() => {
     const set = new Set<string>();
-    cricMatches.forEach((cm) => { const l = extractLeague(cm.name); if (l) set.add(l); });
+    masterMatches.forEach((mm) => { if (mm.seriesName) set.add(mm.seriesName); });
     return Array.from(set).sort();
-  }, [cricMatches]);
+  }, [masterMatches]);
 
-  const filteredCricMatches = useMemo(() =>
+  const filteredMasterMatches = useMemo(() =>
     selectedLeagues.size === 0
-      ? cricMatches
-      : cricMatches.filter((cm) => selectedLeagues.has(extractLeague(cm.name))),
-    [cricMatches, selectedLeagues]
+      ? masterMatches
+      : masterMatches.filter((mm) => selectedLeagues.has(mm.seriesName)),
+    [masterMatches, selectedLeagues]
   );
 
   // Set of cricApiMatchIds already in the group
@@ -219,12 +226,12 @@ function GroupAdminContent() {
     return set;
   }, [matches]);
 
-  function isCricMatchAlreadyAdded(cm: CricMatch): boolean {
-    if (addedCricIds.has(cm.id)) return true;
-    const { teamA, teamB } = parseTeams(cm.name, true);
-    const d = new Date(cm.dateTimeLocal || cm.date);
+  function isMasterMatchAlreadyAdded(mm: MasterMatch): boolean {
+    if (addedCricIds.has(mm.sourceMatchId)) return true;
+    const d = mm.startsAt.toDate();
     const ds = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    return addedTeamDateKeys.has(`${teamA}|${teamB}|${ds}`);
+    return addedTeamDateKeys.has(`${mm.teamAShort}|${mm.teamBShort}|${ds}`) ||
+      addedTeamDateKeys.has(`${abbreviateTeam(mm.teamA)}|${abbreviateTeam(mm.teamB)}|${ds}`);
   }
 
   useEffect(() => {
@@ -366,61 +373,54 @@ function GroupAdminContent() {
     }
   }
 
-  async function handleFetchCricMatches() {
+  async function handleSearchMasterMatches() {
     setCricLoading(true);
     setCricFetched(true);
     setSelectedLeagues(new Set());
     try {
-      const mats = await getCricketMatches();
-      // Live matches first, then upcoming sorted by date ascending
+      const mats = await getActiveMatches();
+      // Live first, then upcoming sorted by startsAt ascending
       mats.sort((a, b) => {
-        if (a.isLive !== b.isLive) return a.isLive ? -1 : 1;
-        const da = new Date(a.dateTimeLocal || a.date).getTime();
-        const db = new Date(b.dateTimeLocal || b.date).getTime();
-        if (isNaN(da) && isNaN(db)) return 0;
-        if (isNaN(da)) return 1;
-        if (isNaN(db)) return -1;
-        return da - db;
+        const aLive = a.status === 'live';
+        const bLive = b.status === 'live';
+        if (aLive !== bLive) return aLive ? -1 : 1;
+        return a.startsAt.toMillis() - b.startsAt.toMillis();
       });
-      setCricMatches(mats);
+      setMasterMatches(mats);
     } catch (err) {
-      console.error('[admin] loadCricMatches failed:', err);
-      setCricMatches([]);
+      console.error('[admin] loadMasterMatches failed:', err);
+      setMasterMatches([]);
     } finally {
       setCricLoading(false);
     }
   }
 
-  async function handleAddFromCricApi(cm: CricMatch) {
-    const { teamA, teamB } = parseTeams(cm.name, true);
-    const rawType = cm.matchType.toLowerCase();
-    const format: Match['format'] =
-      rawType === 'odi' ? 'ODI' : rawType === 'test' ? 'Test' : 'T20';
+  async function handleAddMasterMatch(mm: MasterMatch) {
+    const format = inferFormat(mm.seriesName);
     const drawAllowed = format === 'Test';
-    const matchDate = Timestamp.fromDate(parseDateFromStatus(cm.status, cm.dateTimeLocal || cm.date));
-    const status: Match['status'] = cm.isLive ? 'live' : 'upcoming';
+    const status: Match['status'] = mm.status === 'live' ? 'live' : 'upcoming';
 
-    setAddedIds((prev) => ({ ...prev, [cm.id]: 'adding' }));
+    setAddedIds((prev) => ({ ...prev, [mm.sourceMatchId]: 'adding' }));
     try {
       await createMatch(groupId, {
-        teamA,
-        teamB,
+        teamA: mm.teamAShort,
+        teamB: mm.teamBShort,
         format,
         drawAllowed,
         noDrawPolicy: 'refund',
-        matchDate,
+        matchDate: mm.startsAt,
         status,
         result: 'pending',
         bettingOpen: true,
         bettingClosedAt: null,
-        cricApiMatchId: cm.id,
+        cricApiMatchId: mm.sourceMatchId,
       });
       toast.success('Match added!');
-      setAddedIds((prev) => ({ ...prev, [cm.id]: 'added' }));
+      setAddedIds((prev) => ({ ...prev, [mm.sourceMatchId]: 'added' }));
       await refreshMatches();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to add match');
-      setAddedIds((prev) => { const next = { ...prev }; delete next[cm.id]; return next; });
+      setAddedIds((prev) => { const next = { ...prev }; delete next[mm.sourceMatchId]; return next; });
     }
   }
 
@@ -864,7 +864,7 @@ function GroupAdminContent() {
 
       <main className="max-w-5xl mx-auto px-2 py-8 space-y-10">
 
-        {/* ── CricAPI Import ── */}
+        {/* ── Master Matches Import ── */}
         <section>
           <SectionHeader title="Add Matches" mb="mb-4" />
           <Card variant="default" className="space-y-4">
@@ -872,16 +872,16 @@ function GroupAdminContent() {
               variant="secondary"
               size="md"
               loading={cricLoading}
-              onClick={handleFetchCricMatches}
+              onClick={handleSearchMasterMatches}
             >
               {!cricLoading && <RefreshCw className="h-4 w-4" />}
               Search Matches
             </Button>
 
             {cricFetched && !cricLoading && (
-              cricMatches.length === 0 ? (
+              masterMatches.length === 0 ? (
                 <p className="text-sm text-[var(--text-muted)] text-center py-2">
-                  No matches available from CricAPI right now
+                  No upcoming matches found
                 </p>
               ) : (
                 <div className="space-y-3">
@@ -909,40 +909,36 @@ function GroupAdminContent() {
                       })}
                     </div>
                   )}
-                  {filteredCricMatches.map((cm) => {
-                    const alreadyAdded = isCricMatchAlreadyAdded(cm) || addedIds[cm.id] === 'added';
-                    const adding = addedIds[cm.id] === 'adding';
-                    const rawType = cm.matchType.toLowerCase();
-                    const typeLabel = rawType === 'odi' ? 'ODI' : rawType === 'test' ? 'Test' : 'T20';
+                  {filteredMasterMatches.map((mm) => {
+                    const alreadyAdded = isMasterMatchAlreadyAdded(mm) || addedIds[mm.sourceMatchId] === 'added';
+                    const adding = addedIds[mm.sourceMatchId] === 'adding';
+                    const typeLabel = inferFormat(mm.seriesName);
                     return (
                       <div
-                        key={cm.id}
+                        key={mm.sourceMatchId}
                         className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-[var(--bg-input)] border border-[var(--border)] px-4 py-3"
                       >
                         <div className="min-w-0 flex-1 space-y-1">
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="font-medium text-sm text-[var(--text-primary)]">
-                              {cm.name}
+                              {mm.teamA} vs {mm.teamB}
                             </span>
-                            {/* Live badge: contains animated pulsing dot — can't be done with Badge component */}
-                            {cm.isLive && (
+                            {mm.status === 'live' && (
                               <span className="flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-red-500/20 text-red-400">
                                 <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
                                 Live
                               </span>
                             )}
-                            {/* Match type badge: uses bg-[var(--bg-card)] + border, different from Badge format variant — left as raw span */}
                             <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text-secondary)]">
                               {typeLabel}
                             </span>
                           </div>
                           <p className="text-xs text-[var(--text-muted)]">
-                            {formatCricDate(cm.dateTimeLocal || cm.date)}
+                            {mm.seriesName} · {mm.startsAt.toDate().toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}
                           </p>
                         </div>
-                        {/* "Add to Group" button: has 3 states (default/adding/added) with dynamic colors — no Button variant */}
                         <button
-                          onClick={() => handleAddFromCricApi(cm)}
+                          onClick={() => handleAddMasterMatch(mm)}
                           disabled={alreadyAdded || adding}
                           className={`shrink-0 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors disabled:cursor-not-allowed ${alreadyAdded
                               ? 'bg-green-500/20 text-green-400 disabled:opacity-100'
