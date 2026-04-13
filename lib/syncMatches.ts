@@ -180,10 +180,6 @@ export async function runSync(): Promise<Response> {
 
   // 1. Fetch all active (not ended) masterMatches
   const activeMatches = await getActiveMatches();
-  if (activeMatches.length === 0) {
-    return Response.json({ synced: 0, reason: 'no_active_matches' });
-  }
-
   const results: string[] = [];
 
   // 2. Mark matches as live if start time has passed and close betting
@@ -230,9 +226,7 @@ export async function runSync(): Promise<Response> {
   const liveMatches = activeMatches.filter((m) => m.matchStarted && !m.matchEnded);
   const allLive = [...liveMatches, ...justStarted];
 
-  if (allLive.length === 0) {
-    return Response.json({ synced: 0, reason: 'no_live_matches', details: results });
-  }
+  // (no early return here — step 4 recovery still needs to run even with no live matches)
 
   let apiCallCount = 0;
 
@@ -270,6 +264,53 @@ export async function runSync(): Promise<Response> {
       }
     })
   );
+
+  // 4. Recovery: find group matches still pending whose masterMatch already ended
+  //    This handles cases where masterMatch was marked ended but propagation never ran.
+  try {
+    const pendingSnap = await getAdminDb()
+      .collection('matches')
+      .where('result', '==', 'pending')
+      .get();
+
+    // Collect unique cricApiMatchIds from stuck group matches
+    const stuckIds = [...new Set(
+      pendingSnap.docs
+        .map((d) => d.data().cricApiMatchId as string | undefined)
+        .filter((id): id is string => !!id)
+    )];
+
+    results.push(`recovery: found ${pendingSnap.docs.length} pending matches, ${stuckIds.length} unique cricApiMatchIds`);
+
+    if (stuckIds.length > 0) {
+      await Promise.all(
+        stuckIds.map(async (cricApiMatchId) => {
+          try {
+            const masterSnap = await getAdminDb().doc(`masterMatch/${cricApiMatchId}`).get();
+            if (!masterSnap.exists) {
+              results.push(`recovery skip: masterMatch not found for ${cricApiMatchId}`);
+              return;
+            }
+            const master = masterSnap.data()!;
+            if (!master.matchEnded || !master.result || master.result === 'pending') {
+              results.push(`recovery skip: ${cricApiMatchId} matchEnded=${master.matchEnded} result=${master.result}`);
+              return;
+            }
+
+            const settled = await propagateResultToGroupMatches(
+              cricApiMatchId,
+              master.result as MatchResult
+            );
+            results.push(`recovery propagated: ${cricApiMatchId} → settled=[${settled.join(', ')}]`);
+          } catch (err) {
+            results.push(`recovery error: ${cricApiMatchId} — ${String(err)}`);
+          }
+        })
+      );
+    }
+  } catch (err) {
+    results.push(`warn: recovery step failed — ${String(err)}`);
+  }
 
   return Response.json({ synced: allLive.length, apiCalls: apiCallCount, details: results });
 }
