@@ -9,6 +9,7 @@ import { Button, Card, Spinner } from '@/components/ui';
 import {
   getMasterSeries,
   saveMasterSeries,
+  updateSeriesEndDate,
   getMasterMatchesBySeriesId,
   updateMasterMatchStatus,
   type MasterSeries,
@@ -214,6 +215,45 @@ function MatchTable({ series }: { series: MasterSeries }) {
 
 function SeriesRow({ series, onDeleted }: { series: MasterSeries; onDeleted: () => void }) {
   const [expanded, setExpanded] = useState(false);
+  const [editingEndDate, setEditingEndDate] = useState(false);
+  const [endDateValue, setEndDateValue] = useState('');
+  const [savingEndDate, setSavingEndDate] = useState(false);
+
+  function toDateInputValue(ts: MasterSeries['endDate']): string {
+    if (!ts) return '';
+    const d = ts.toDate();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  }
+
+  function startEditEndDate(e: React.MouseEvent) {
+    e.stopPropagation();
+    setEndDateValue(toDateInputValue(series.endDate));
+    setEditingEndDate(true);
+  }
+
+  async function saveEndDate(e: React.MouseEvent) {
+    e.stopPropagation();
+    setSavingEndDate(true);
+    try {
+      const ts = endDateValue ? Timestamp.fromDate(new Date(endDateValue)) : null;
+      await updateSeriesEndDate(series.id, ts);
+      series.endDate = ts ?? undefined;
+      toast.success(ts ? 'End date saved' : 'End date cleared');
+      setEditingEndDate(false);
+    } catch {
+      toast.error('Failed to save end date');
+    } finally {
+      setSavingEndDate(false);
+    }
+  }
+
+  function cancelEditEndDate(e: React.MouseEvent) {
+    e.stopPropagation();
+    setEditingEndDate(false);
+  }
+
+  const isEnded = !!series.endDate && series.endDate.toDate() < new Date();
 
   return (
     <Card variant="default" className="p-0 overflow-hidden">
@@ -227,18 +267,52 @@ function SeriesRow({ series, onDeleted }: { series: MasterSeries; onDeleted: () 
         <div>
           <div className="flex items-center gap-2">
             <p className="font-semibold text-[var(--text-primary)]">{series.name}</p>
-            {series.endDate && series.endDate.toDate() < new Date() && (
+            {isEnded && (
               <span className="text-xs px-1.5 py-0.5 rounded bg-[var(--bg-input)] text-[var(--text-muted)]">ended</span>
             )}
           </div>
-          <p className="text-xs text-[var(--text-muted)] mt-0.5">
-            CricAPI ID: {series.cricapiId}
-            {series.endDate && (
-              <span className="ml-2">
-                · ends {series.endDate.toDate().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-              </span>
+          <div className="flex items-center gap-1 mt-0.5">
+            <p className="text-xs text-[var(--text-muted)]">
+              CricAPI ID: {series.cricapiId}
+            </p>
+            {!editingEndDate && (
+              <button
+                className="flex items-center gap-1 ml-2 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+                onClick={startEditEndDate}
+                title="Set end date"
+              >
+                <Pencil className="h-3 w-3" />
+                {series.endDate
+                  ? series.endDate.toDate().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+                  : 'Set end date'}
+              </button>
             )}
-          </p>
+            {editingEndDate && (
+              <div className="flex items-center gap-1 ml-2" onClick={(e) => e.stopPropagation()}>
+                <input
+                  type="date"
+                  value={endDateValue}
+                  onChange={(e) => setEndDateValue(e.target.value)}
+                  className="bg-[var(--bg-input)] border border-[var(--border)] rounded px-2 py-0.5 text-xs text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-green-500"
+                />
+                <button
+                  onClick={saveEndDate}
+                  disabled={savingEndDate}
+                  className="p-1 text-green-400 hover:text-green-300"
+                  title="Save"
+                >
+                  <Check className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  onClick={cancelEditEndDate}
+                  className="p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                  title="Cancel"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <button

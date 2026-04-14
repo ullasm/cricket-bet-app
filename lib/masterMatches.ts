@@ -4,6 +4,7 @@ import {
   getDocs,
   setDoc,
   updateDoc,
+  deleteField,
   query,
   where,
   Timestamp,
@@ -58,6 +59,12 @@ export async function getMasterSeries(): Promise<MasterSeries[]> {
 export async function saveMasterSeries(series: Omit<MasterSeries, 'id'> & { id?: string }): Promise<void> {
   const id = series.id ?? series.cricapiId;
   await setDoc(doc(db, 'masterSeries', id), { ...series, id }, { merge: true });
+}
+
+export async function updateSeriesEndDate(id: string, endDate: Timestamp | null): Promise<void> {
+  await updateDoc(doc(db, 'masterSeries', id), {
+    endDate: endDate ?? deleteField(),
+  });
 }
 
 // ── Master Matches ────────────────────────────────────────────────────────────
