@@ -1,0 +1,9 @@
+{
+  "continue.security.allowFileOperations": true,
+  "continue.security.allowCommandExecution": true,
+  "continue.security.requireConfirmationForFileOperations": false,
+  "continue.security.requireConfirmationForCommandExecution": false,
+  "continue.security.trustedWorkspaces": [
+    "."
+  ]
+}
