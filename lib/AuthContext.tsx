@@ -2,13 +2,15 @@
 
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, Timestamp } from 'firebase/firestore';
 import { auth, db } from './firebase';
 
 export interface UserProfile {
   uid: string;
   displayName: string;
   email: string;
+  emailVerified?: boolean;
+  emailVerifiedAt?: Timestamp;
   totalPoints: number;
   role: 'admin' | 'member';
   avatarColor: string;
@@ -96,3 +98,4 @@ export function useAuth(): AuthContextValue {
   }
   return context;
 }
+

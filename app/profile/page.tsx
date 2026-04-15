@@ -10,6 +10,7 @@ import AppNavbar from '@/components/AppNavbar';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { useAuth } from '@/lib/AuthContext';
 import { getUserGroups } from '@/lib/groups';
+import { resendVerificationEmail } from '@/lib/auth';
 import type { Group } from '@/lib/groups';
 import {
   Spinner,
@@ -48,6 +49,7 @@ function ProfileContent() {
   const [displayName, setDisplayName] = useState('');
   const [selectedColor, setSelectedColor] = useState('');
   const [saving, setSaving] = useState(false);
+  const [resendingVerification, setResendingVerification] = useState(false);
 
   const [groups, setGroups] = useState<Group[]>([]);
   const [loadingGroups, setLoadingGroups] = useState(true);
@@ -118,6 +120,20 @@ function ProfileContent() {
     }
   }
 
+  async function handleResendVerification() {
+    if (!user) return;
+    
+    setResendingVerification(true);
+    try {
+      await resendVerificationEmail();
+      toast.success('Verification email sent! Please check your inbox.');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to resend verification email');
+    } finally {
+      setResendingVerification(false);
+    }
+  }
+
   if (!userProfile) {
     return <Spinner size="lg" fullPage />;
   }
@@ -125,6 +141,8 @@ function ProfileContent() {
   const isDirty =
     displayName.trim() !== userProfile.displayName ||
     selectedColor !== userProfile.avatarColor;
+
+  const isEmailVerified = user?.emailVerified || userProfile.emailVerified;
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
@@ -153,11 +171,46 @@ function ProfileContent() {
               {userProfile.displayName}
             </p>
             <p className="text-sm text-[var(--text-muted)]">{userProfile.email}</p>
-            <p className="text-sm font-semibold text-green-400 mt-1">
-              {userProfile.totalPoints} pts total
-            </p>
+            <div className="flex items-center gap-2 mt-1">
+              <p className="text-sm font-semibold text-green-400">
+                {userProfile.totalPoints} pts total
+              </p>
+              {!isEmailVerified && (
+                <Badge variant="role-member" shape="tag" className="text-xs">
+                  Email not verified
+                </Badge>
+              )}
+            </div>
           </div>
         </Card>
+
+        {/* ── Email verification status ── */}
+        {!isEmailVerified && (
+          <Card variant="default" className="border-yellow-500/30 bg-yellow-500/5">
+            <div className="flex items-start">
+              <svg className="w-5 h-5 text-yellow-500 mt-0.5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.998-.833-2.732 0L4.346 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+              </svg>
+              <div className="flex-1">
+                <h3 className="text-sm font-medium text-yellow-600 dark:text-yellow-400">
+                  Email not verified
+                </h3>
+                <p className="text-xs text-yellow-700 dark:text-yellow-500 mt-1">
+                  Please verify your email address to access all features.
+                </p>
+                <Button
+                  onClick={handleResendVerification}
+                  variant="secondary"
+                  size="sm"
+                  loading={resendingVerification}
+                  className="mt-2"
+                >
+                  Resend Verification Email
+                </Button>
+              </div>
+            </div>
+          </Card>
+        )}
 
         {/* ── Edit profile form ── */}
         <Card variant="default" className="space-y-5">

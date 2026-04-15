@@ -43,8 +43,9 @@ function RegisterForm() {
     setSubmitting(true);
     try {
       await registerUser(email, password, displayName);
-      toast.success('Account created! Welcome to WhoWins!');
-      router.replace(redirectTo);
+      toast.success('Account created! Please check your email to verify your account.');
+      // Redirect to verification page instead of groups
+      router.replace('/verify-email?email=' + encodeURIComponent(email));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to create account');
     } finally {
@@ -117,6 +118,10 @@ function RegisterForm() {
             onChange={(e) => setConfirmPassword(e.target.value)}
             placeholder="••••••••"
           />
+
+          <div className="text-xs text-[var(--text-muted)] mt-2">
+            By creating an account, you agree to receive a verification email.
+          </div>
 
           <Button
             type="submit"
