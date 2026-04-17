@@ -712,8 +712,8 @@ function GroupAdminContent() {
         {editingMatch && (
           <form onSubmit={handleSaveEdit} className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <FormInput label="Team A" type="text" required value={editTeamA} onChange={(e) => setEditTeamA(e.target.value)} />
-              <FormInput label="Team B" type="text" required value={editTeamB} onChange={(e) => setEditTeamB(e.target.value)} />
+              <FormInput id="editTeamA" label="Team A" type="text" required value={editTeamA} onChange={(e) => setEditTeamA(e.target.value)} />
+              <FormInput id="editTeamB" label="Team B" type="text" required value={editTeamB} onChange={(e) => setEditTeamB(e.target.value)} />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <FormSelect
@@ -919,14 +919,14 @@ function GroupAdminContent() {
         <section>
           <SectionHeader title="Create Match" mb="mb-4" />
           <Card variant="default">
-            <form onSubmit={handleCreateMatch} className="space-y-4">
+            <form onSubmit={handleCreateMatch} className="space-y-4" noValidate>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <FormInput label="Team A" type="text" required value={teamA} onChange={(e) => setTeamA(e.target.value)} placeholder="e.g. India" />
-                <FormInput label="Team B" type="text" required value={teamB} onChange={(e) => setTeamB(e.target.value)} placeholder="e.g. Australia" />
+                <FormInput id="teamA" label="Team A" type="text" required value={teamA} onChange={(e) => setTeamA(e.target.value)} placeholder="e.g. India" />
+                <FormInput id="teamB" label="Team B" type="text" required value={teamB} onChange={(e) => setTeamB(e.target.value)} placeholder="e.g. Australia" />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <FormSelect label="Format" value={format} onChange={(e) => setFormat(e.target.value as Match['format'])}>
+                <FormSelect id="format" label="Format" value={format} onChange={(e) => setFormat(e.target.value as Match['format'])}>
                   <option value="T20">T20</option>
                   <option value="ODI">ODI</option>
                   <option value="Test">Test</option>
@@ -959,6 +959,7 @@ function GroupAdminContent() {
 
               <div className="flex flex-wrap items-center gap-6">
                 <FormCheckbox
+                  id="drawAllowed"
                   label="Allow Draw"
                   checked={drawAllowed}
                   disabled={format === 'Test'}

@@ -64,6 +64,8 @@ export const Modal: FC<ModalProps> = ({
       }}
     >
       <div
+        role="dialog"
+        aria-modal="true"
         className={`w-full ${maxWidthClasses[maxWidth]} bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl shadow-xl ${padding ?? 'p-6'} ${scrollable ? 'max-h-[90vh] overflow-y-auto' : ''} ${className}`}
         onClick={(e) => e.stopPropagation()}
       >

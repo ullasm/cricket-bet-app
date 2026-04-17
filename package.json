@@ -8,7 +8,13 @@
     "build2": "powershell -Command \"next build 2>&1 | Tee-Object -FilePath 'build.log' -Append\"",
     "start": "next start",
     "lint": "eslint",
-    "verify": "powershell -Command \"npm run lint > build.log; npm run build2\""
+    "verify": "powershell -Command \"npm run lint > build.log; npm run build2\"",
+    "test:setup": "tsx tests/setup/provisionUsers.ts",
+    "test:auth": "tsx tests/setup/saveAuthState.ts",
+    "test:e2e": "npx playwright test",
+    "test:e2e:ui": "npx playwright test --ui",
+    "test:report": "npx playwright show-report tests/playwright-report",
+    "test:teardown": "tsx scripts/test-teardown.ts"
   },
   "dependencies": {
     "firebase": "^12.11.0",
@@ -20,6 +26,7 @@
     "react-hot-toast": "^2.6.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.59.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
@@ -27,6 +34,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.2",
     "tailwindcss": "^4",
+    "tsx": "^4.21.0",
     "typescript": "^5"
   }
 }

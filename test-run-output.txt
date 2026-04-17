@@ -1,0 +1,436 @@
+  Previous run artifacts cleared (test-results, playwright-report)
+
+
+══════════════════════════════════════════════════════════════
+  WhoWins E2E — Verifying credentials (global setup)
+  Base URL : http://localhost:3000
+  Roles    : 12
+══════════════════════════════════════════════════════════════
+
+  ✓  Credentials valid for [superAdmin] (ullas.inet2+superadmin@gmail.com)
+  ✓  Credentials valid for [friends_admin_ullas] (ullas.inet2+ullas@gmail.com)
+  ✓  Credentials valid for [friends_admin_vasu] (ullas.inet2+vasu@gmail.com)
+  ✓  Credentials valid for [friends_member_raghu] (ullas.inet2+raghu@gmail.com)
+  ✓  Credentials valid for [friends_member_chethan] (ullas.inet2+chethan@gmail.com)
+  ✓  Credentials valid for [friends_member_gourish] (ullas.inet2+gourish@gmail.com)
+  ✓  Credentials valid for [friends_member_shrimanth] (ullas.inet2+shrimanth@gmail.com)
+  ✓  Credentials valid for [friends_member_kulli] (ullas.inet2+kulli@gmail.com)
+  ✓  Credentials valid for [friends_member_kutti] (ullas.inet2+kutti@gmail.com)
+  ✓  Credentials valid for [family_admin_ullas] (ullas.inet2+ullas@gmail.com)
+  ✓  Credentials valid for [family_member_yashu] (ullas.inet2+yashu@gmail.com)
+  ✓  Credentials valid for [family_member_abhi] (ullas.inet2+abhi@gmail.com)
+
+══════════════════════════════════════════════════════════════
+  All credentials verified. Starting test run…
+══════════════════════════════════════════════════════════════
+
+
+Running 151 tests using 1 worker
+
+  ok   1 [chromium] › tests\e2e\admin\group-matches-admin.spec.ts:18:7 › A8-01 — Matches admin: unauthenticated › A8-01: Unauthenticated → redirected to /login (1.8s)
+  ok   2 [chromium] › tests\e2e\admin\group-matches-admin.spec.ts:38:7 › A8-02 — Matches admin: member access denied › A8-02: Non-admin member → "Access denied" card with "Back to Group" button (4.9s)
+  ok   3 [chromium] › tests\e2e\admin\group-matches-admin.spec.ts:81:7 › A8 — Matches admin: admin view › A8-03: Group admin sees "Add Matches" section, Create Match form, and "All Matches" list (4.8s)
+  ok   4 [chromium] › tests\e2e\admin\group-matches-admin.spec.ts:93:7 › A8 — Matches admin: admin view › A8-07: Create Match form: missing match date → error toast (5.4s)
+  ok   5 [chromium] › tests\e2e\admin\group-matches-admin.spec.ts:106:7 › A8 — Matches admin: admin view › A8-08: Create Match form: empty team name → error toast (6.0s)
+  ok   6 [chromium] › tests\e2e\admin\group-matches-admin.spec.ts:125:7 › A8 — Matches admin: admin view › A8-09: Create Match with format=Test → drawAllowed auto-checked and disabled (4.9s)
+(node:15868) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+  ok   7 [chromium] › tests\e2e\admin\group-matches-admin.spec.ts:138:7 › A8 — Matches admin: admin view › A8-11: Match filter chips (All/Ongoing/Upcoming/Previous) filter the match list (8.2s)
+  x    8 [chromium] › tests\e2e\admin\group-matches-admin.spec.ts:156:7 › A8 — Matches admin: admin view › A8-12: "Edit" button on match opens edit modal pre-filled with match data (10.4s)
+(node:27556) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+  x    9 [chromium] › tests\e2e\admin\group-matches-admin.spec.ts:178:7 › A8 — Matches admin: admin view › A8-13: "Delete" button shows confirmation modal; confirm removes match (12.8s)
+(node:16936) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+  x   10 [chromium] › tests\e2e\admin\group-matches-admin.spec.ts:202:7 › A8 — Matches admin: admin view › A8-14: "Close Betting" / "Open Betting" toggle updates match betting state (11.3s)
+(node:10728) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+  x   11 [chromium] › tests\e2e\admin\group-matches-admin.spec.ts:225:7 › A8 — Matches admin: admin view › A8-15: Declare result → points settled, match shows completed (9.8s)
+(node:13644) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+  x   12 [chromium] › tests\e2e\admin\group-matches-admin.spec.ts:252:7 › A8 — Matches admin: admin view › A8-17: "Manage Bets" button opens modal with all group members (9.6s)
+  ok  13 [chromium] › tests\e2e\admin\super-admin.spec.ts:14:7 › A14-01 — Admin: unauthenticated › A14-01: Unauthenticated → redirected to /login or /groups (2.7s)
+  ok  14 [chromium] › tests\e2e\admin\super-admin.spec.ts:30:7 › A14-02 — Admin: non-superAdmin redirected to /groups › A14-02: Authenticated non-superAdmin → redirected to /groups (8.6s)
+  ok  15 [chromium] › tests\e2e\admin\super-admin.spec.ts:44:7 › A14-02b / C-10 — Group admin (not superAdmin) → redirected from /admin › C-10: Group admin who is NOT platform superAdmin → cannot access /admin → redirected to /groups (19.3s)
+  ok  16 [chromium] › tests\e2e\admin\super-admin.spec.ts:57:7 › A14 — Admin page: superAdmin view › A14-03: SuperAdmin sees Admin page with "Match Sync" and "Series" sections (12.0s)
+  ok  17 [chromium] › tests\e2e\admin\super-admin.spec.ts:69:7 › A14 — Admin page: superAdmin view › A14-04: "Sync Live Matches" button is clickable (7.5s)
+  ok  18 [chromium] › tests\e2e\admin\super-admin.spec.ts:79:7 › A14 — Admin page: superAdmin view › A14-05: Add Series form shows name and CricAPI UUID fields (8.0s)
+  ok  19 [chromium] › tests\e2e\admin\super-admin.spec.ts:90:7 › A14 — Admin page: superAdmin view › A14-11: "Admin" link visible in navbar dropdown only for superAdmin users (8.8s)
+  ok  20 [chromium] › tests\e2e\admin\super-admin.spec.ts:108:7 › A14 — Admin page: superAdmin view › A14-09: "Remove series" button hides series from local state (UI-only) (7.1s)
+  ok  21 [chromium] › tests\e2e\auth\login.spec.ts:19:7 › A2 — Login page › A2-01: Valid email/password login → success toast → redirects to /groups (3.8s)
+  ok  22 [chromium] › tests\e2e\auth\login.spec.ts:32:7 › A2 — Login page › A2-02: Login with ?redirect param → redirects to param destination after login (3.4s)
+  ok  23 [chromium] › tests\e2e\auth\login.spec.ts:42:7 › A2 — Login page › A2-03: Wrong password → error toast, stays on /login (1.7s)
+  ok  24 [chromium] › tests\e2e\auth\login.spec.ts:56:7 › A2 — Login page › A2-04: Non-existent email → error toast (3.1s)
+  ok  25 [chromium] › tests\e2e\auth\login.spec.ts:66:7 › A2 — Login page › A2-06: Already authenticated visit → immediately redirects to /groups (7.1s)
+  ok  26 [chromium] › tests\e2e\auth\login.spec.ts:78:7 › A2 — Login page › A2-07: "Continue with Google" button is visible and clickable (5.2s)
+  ok  27 [chromium] › tests\e2e\auth\login.spec.ts:85:7 › A2 — Login page › A2-08: Register link preserves ?redirect param (4.5s)
+  ok  28 [chromium] › tests\e2e\auth\login.spec.ts:100:7 › A6 — Logout › A6-01: Authenticated user signs out → redirects to /login (9.2s)
+  ok  29 [chromium] › tests\e2e\auth\login.spec.ts:121:7 › A6 — Logout › A6-02: After sign out, visiting /groups redirects to /login (11.1s)
+  ok  30 [chromium] › tests\e2e\auth\login.spec.ts:144:7 › A6 — Logout › A6-03: After sign out, visiting /profile redirects to /login (8.8s)
+  ok  31 [chromium] › tests\e2e\auth\protected-routes.spec.ts:17:7 › A1 — Home route (/) redirect › A1-01: Unauthenticated visit to / → redirects to /login (2.5s)
+  ok  32 [chromium] › tests\e2e\auth\protected-routes.spec.ts:23:7 › A1 — Home route (/) redirect › A1-02: Authenticated visit to / → redirects to /groups (5.7s)
+  ok  33 [chromium] › tests\e2e\auth\protected-routes.spec.ts:41:7 › A4 — Profile page (unauthenticated) › A4-01: Unauthenticated → redirected to /login?redirect=/profile (1.6s)
+  ok  34 [chromium] › tests\e2e\auth\protected-routes.spec.ts:55:7 › A5 — Groups page (unauthenticated) › A5-01: Unauthenticated → redirected to /login (2.7s)
+  ok  35 [chromium] › tests\e2e\auth\protected-routes.spec.ts:67:7 › Protected group sub-routes — unauthenticated redirect › Unauthenticated visit to /groups/[groupId] → redirects to /login (2.6s)
+  ok  36 [chromium] › tests\e2e\auth\protected-routes.spec.ts:74:7 › Protected group sub-routes — unauthenticated redirect › Unauthenticated visit to /groups/[groupId]/matches → redirects to /login (4.4s)
+  ok  37 [chromium] › tests\e2e\auth\protected-routes.spec.ts:81:7 › Protected group sub-routes — unauthenticated redirect › Unauthenticated visit to /groups/[groupId]/points → redirects to /login (4.5s)
+  ok  38 [chromium] › tests\e2e\auth\protected-routes.spec.ts:88:7 › Protected group sub-routes — unauthenticated redirect › Unauthenticated visit to /groups/create → redirects to /login (3.0s)
+  -   39 [chromium] › tests\e2e\auth\register.spec.ts:12:7 › A3 — Register page › A3-01: Valid registration → account created → redirects to /groups
+  -   40 [chromium] › tests\e2e\auth\register.spec.ts:18:7 › A3 — Register page › A3-02: Password fewer than 6 characters → error toast "Password must be at least 6 characters"
+  -   41 [chromium] › tests\e2e\auth\register.spec.ts:29:7 › A3 — Register page › A3-03: Passwords do not match → error toast "Passwords do not match"
+  -   42 [chromium] › tests\e2e\auth\register.spec.ts:40:7 › A3 — Register page › A3-04: Already authenticated visit → immediately redirects to /groups
+  -   43 [chromium] › tests\e2e\auth\register.spec.ts:52:7 › A3 — Register page › A3-05: Google sign-in button is visible on register page
+  -   44 [chromium] › tests\e2e\auth\register.spec.ts:60:7 › A3 — Register page › A3-06: "Sign in" link preserves ?redirect param
+(node:24840) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+  ok  45 [chromium] › tests\e2e\betting\bet-lock.spec.ts:27:7 › E-02 / A7-05 — Betting locked when bettingOpen=false › E-02: bettingOpen=false → "Place Bet" button not shown (10.5s)
+  ok  46 [chromium] › tests\e2e\betting\bet-lock.spec.ts:46:7 › E-02 / A7-05 — Betting locked when bettingOpen=false › E-02b: Betting locked match — existing bet is read-only, Change Bet hidden (15.4s)
+  ok  47 [chromium] › tests\e2e\betting\bet-lock.spec.ts:85:7 › E-02 / A7-05 — Betting locked when bettingOpen=false › A7-18: Match auto-closes betting when matchDate has passed (bettingOpen=false) (10.8s)
+  ok  48 [chromium] › tests\e2e\betting\draw-option.spec.ts:25:7 › Draw option gating › E-03a: Match with drawAllowed=false → 2-outcome picker (no Draw button) (6.6s)
+  ok  49 [chromium] › tests\e2e\betting\draw-option.spec.ts:46:7 › Draw option gating › E-03b: Match with drawAllowed=true → 3-outcome picker (Draw button visible) (9.5s)
+  ok  50 [chromium] › tests\e2e\betting\draw-option.spec.ts:74:7 › E-04 — Test format auto-enables draw checkbox › E-04: Creating a match with format=Test → "Allow Draw" checkbox auto-checked and disabled (9.7s)
+  ok  51 [chromium] › tests\e2e\betting\place-bet.spec.ts:36:7 › Inline bet placement — place, change, remove › A7-06: Click "Place Bet" → select outcome → set stake → confirm → bet recorded; button changes to "Change Bet" (11.8s)
+  ok  52 [chromium] › tests\e2e\betting\place-bet.spec.ts:62:7 › Inline bet placement — place, change, remove › A7-10: "Change Bet" opens inline form pre-filled with current outcome/stake (10.2s)
+  x   53 [chromium] › tests\e2e\cross-page\cross-page-flows.spec.ts:39:7 › B-02: Create match → member bets → declare result → check points › B-02: Full flow — match created, bet placed, result declared, standings updated (13.6s)
+  x   54 [chromium] › tests\e2e\cross-page\cross-page-flows.spec.ts:105:7 › B-03: Admin promotes member → promoted user accesses matches › B-03: Promote Raghu → Raghu sees Matches tab (0ms)
+  -   55 [chromium] › tests\e2e\cross-page\cross-page-flows.spec.ts:155:7 › B-04: Invite regeneration → old link invalid → new link valid › B-04: Old invite URL resolves to "Invalid invite link" after regeneration
+  -   56 [chromium] › tests\e2e\cross-page\cross-page-flows.spec.ts:199:7 › B-07: Abandoned match → bet status=refunded › B-07: Admin declares match abandoned → member bet shows "Refunded" badge
+  x   57 [chromium] › tests\e2e\edge-cases\edge-cases.spec.ts:24:7 › E-01: Empty group dashboard › E-01: Group with no matches → all sections show empty-state (no crash) (0ms)
+  -   58 [chromium] › tests\e2e\edge-cases\edge-cases.spec.ts:45:7 › E-02: Betting locked after bettingOpen=false › E-02: bettingOpen=false → "Place Bet" not shown; existing bet is read-only
+  -   59 [chromium] › tests\e2e\edge-cases\edge-cases.spec.ts:63:7 › E-03: Draw option gating › E-03: drawAllowed=true → 3 outcome buttons (Team A / Draw / Team B)
+  -   60 [chromium] › tests\e2e\edge-cases\edge-cases.spec.ts:83:7 › E-04: Test format auto-enables draw › E-04: Format=Test in Create Match form → Allow Draw auto-checked and disabled
+  -   61 [chromium] › tests\e2e\edge-cases\edge-cases.spec.ts:106:7 › E-05 / E-06: Stake input › E-05: Click +100 three times → stake shows 300; clear input → Confirm disabled
+  -   62 [chromium] › tests\e2e\edge-cases\edge-cases.spec.ts:131:7 › E-05 / E-06: Stake input › E-06: Stake 0 → Confirm Bet button disabled
+  -   63 [chromium] › tests\e2e\edge-cases\edge-cases.spec.ts:155:7 › E-07: Remove bet confirmation guard › E-07: Clicking "Remove Bet" once does NOT remove the bet; must confirm in modal
+  -   64 [chromium] › tests\e2e\edge-cases\edge-cases.spec.ts:185:7 › E-08: Invalid invite code › E-08: Visit /join/XXXXXX → "Invalid invite link" card shown
+  -   65 [chromium] › tests\e2e\edge-cases\edge-cases.spec.ts:198:7 › E-09: Group name min-length on Create Group › E-09: 2-char group name → error toast
+  -   66 [chromium] › tests\e2e\edge-cases\edge-cases.spec.ts:211:7 › E-10: Profile display name min-length › E-10: 1-char display name → error toast "at least 2 characters"
+  -   67 [chromium] › tests\e2e\edge-cases\edge-cases.spec.ts:228:7 › E-11: Delete group type-to-confirm guard › E-11: Partial group name → Delete button disabled; exact name → enabled
+  -   68 [chromium] › tests\e2e\edge-cases\edge-cases.spec.ts:258:7 › E-13: Past matches filter empty state › E-13: Filter "Betted" with no betted past matches → no crash, empty or correct state
+  -   69 [chromium] › tests\e2e\edge-cases\edge-cases.spec.ts:279:7 › E-14: Member name edit min-length (admin) › E-14: Admin edits member name to 1 char → "at least 2 characters" error
+  -   70 [chromium] › tests\e2e\edge-cases\edge-cases.spec.ts:304:7 › E-15: Settlements empty state › E-15: Group with no completed matches → Points page shows "All settled up!" or zero settlements
+  -   71 [chromium] › tests\e2e\edge-cases\edge-cases.spec.ts:320:7 › E-16: Already-member join › E-16: Authenticated user visits own group invite link → "You're already in this group!"
+  -   72 [chromium] › tests\e2e\edge-cases\edge-cases.spec.ts:347:7 › A12 — Bet page /groups/[groupId]/bet/[matchId] [STUB] › A12-01: Unauthenticated → redirected to /login
+  -   73 [chromium] › tests\e2e\edge-cases\edge-cases.spec.ts:351:7 › A12 — Bet page /groups/[groupId]/bet/[matchId] [STUB] › A12-02: Non-member → "Access denied" card
+  -   74 [chromium] › tests\e2e\edge-cases\edge-cases.spec.ts:352:7 › A12 — Bet page /groups/[groupId]/bet/[matchId] [STUB] › A12-03: Match not found → "Match not found" card
+  -   75 [chromium] › tests\e2e\edge-cases\edge-cases.spec.ts:353:7 › A12 — Bet page /groups/[groupId]/bet/[matchId] [STUB] › A12-04: bettingOpen=false → locked view showing existing bet or "no bet placed"
+  -   76 [chromium] › tests\e2e\edge-cases\edge-cases.spec.ts:354:7 › A12 — Bet page /groups/[groupId]/bet/[matchId] [STUB] › A12-05: status=completed → locked view with match status badge
+  -   77 [chromium] › tests\e2e\edge-cases\edge-cases.spec.ts:355:7 › A12 — Bet page /groups/[groupId]/bet/[matchId] [STUB] › A12-06: Open match → outcome picker (2 or 3 buttons based on drawAllowed)
+  -   78 [chromium] › tests\e2e\edge-cases\edge-cases.spec.ts:356:7 › A12 — Bet page /groups/[groupId]/bet/[matchId] [STUB] › A12-07: No outcome selected → Confirm Bet button does not appear
+  -   79 [chromium] › tests\e2e\edge-cases\edge-cases.spec.ts:357:7 › A12 — Bet page /groups/[groupId]/bet/[matchId] [STUB] › A12-08: Existing bet → "Current bet" card shown; outcome pre-selected
+  -   80 [chromium] › tests\e2e\edge-cases\edge-cases.spec.ts:358:7 › A12 — Bet page /groups/[groupId]/bet/[matchId] [STUB] › A12-09: Select outcome + confirm → bet upserted → redirected to group dashboard
+  -   81 [chromium] › tests\e2e\edge-cases\edge-cases.spec.ts:359:7 › A12 — Bet page /groups/[groupId]/bet/[matchId] [STUB] › A12-10: STAKE is hardcoded to 1000 pts on this page
+  -   82 [chromium] › tests\e2e\edge-cases\edge-cases.spec.ts:375:7 › E-19: No upcoming matches in admin search › E-19: Search Matches section renders without error even if empty
+  -   83 [chromium] › tests\e2e\edge-cases\edge-cases.spec.ts:392:7 › E-20: Manage Bets shows members › E-20: Manage Bets modal lists group members
+  x   84 [chromium] › tests\e2e\groups\create-group.spec.ts:15:7 › A6-01 — Create Group: unauthenticated redirect › A6-01: Unauthenticated → redirected to /login (0ms)
+  -   85 [chromium] › tests\e2e\groups\create-group.spec.ts:28:7 › A6 — Create Group page (authenticated) › A6-02: Group name fewer than 3 characters → error toast
+  -   86 [chromium] › tests\e2e\groups\create-group.spec.ts:35:7 › A6 — Create Group page (authenticated) › A6-03: Valid name → group created → redirects to new group dashboard
+  -   87 [chromium] › tests\e2e\groups\create-group.spec.ts:56:7 › A6 — Create Group page (authenticated) › A6-04: "Back to Groups" link navigates to /groups
+  -   88 [chromium] › tests\e2e\groups\create-group.spec.ts:63:7 › A6 — Create Group page (authenticated) › A6-05: Creator is set as group admin — Matches tab appears after creation
+  x   89 [chromium] › tests\e2e\groups\group-dashboard.spec.ts:20:7 › A7-01 — Group dashboard: unauthenticated › A7-01: Unauthenticated → redirected to /login (0ms)
+  -   90 [chromium] › tests\e2e\groups\group-dashboard.spec.ts:35:7 › A7-02 — Group dashboard: non-member access denied › A7-02: Non-member authenticated user → "Access denied" message with Back link
+  -   91 [chromium] › tests\e2e\groups\group-dashboard.spec.ts:49:7 › A7 — Group dashboard: member view › A7-03: Member sees live/ongoing, upcoming, and past match sections
+  -   92 [chromium] › tests\e2e\groups\group-dashboard.spec.ts:58:7 › A7 — Group dashboard: member view › A7-16: Member does NOT see "Matches" tab in group navbar
+  -   93 [chromium] › tests\e2e\groups\group-dashboard.spec.ts:66:7 › A7 — Group dashboard: member view › A7-12: Past matches default filter is "Betted"
+  -   94 [chromium] › tests\e2e\groups\group-dashboard.spec.ts:96:7 › A7 — Group dashboard: admin view › A7-17: Group admin DOES see "Matches" tab in group navbar
+  -   95 [chromium] › tests\e2e\groups\group-dashboard.spec.ts:104:7 › A7 — Group dashboard: admin view › A7-04: No matches in group → sections show empty-state cards (no crash)
+  -   96 [chromium] › tests\e2e\groups\group-dashboard.spec.ts:114:7 › A7 — Group dashboard: admin view › A7-05: Upcoming match with bettingOpen=true → "Place Bet" button visible
+  -   97 [chromium] › tests\e2e\groups\group-dashboard.spec.ts:129:7 › A7 — Group dashboard: admin view › A7-07: Outcome picker shows 2 buttons (no draw) or 3 buttons (draw allowed)
+  -   98 [chromium] › tests\e2e\groups\group-dashboard.spec.ts:153:7 › A7 — Group dashboard: admin view › A7-09: Stake input cleared → stake is 0 → Confirm Bet button disabled
+  -   99 [chromium] › tests\e2e\groups\group-dashboard.spec.ts:179:7 › A7 — Group dashboard: admin view › A7-11: "Remove Bet" shows confirmation modal; Cancel keeps bet; Confirm removes it
+  -  100 [chromium] › tests\e2e\groups\group-dashboard.spec.ts:217:7 › A7 — Group dashboard: admin view › A7-08: Stake preset buttons add to current stake value
+  x  101 [chromium] › tests\e2e\groups\group-manage.spec.ts:17:7 › A11-01 — Group manage: unauthenticated › A11-01: Unauthenticated → redirected to /login (0ms)
+  -  102 [chromium] › tests\e2e\groups\group-manage.spec.ts:31:7 › A11 — Group manage: member read-only view › A11-03: Member sees group name, invite link, member list with role badges
+  -  103 [chromium] › tests\e2e\groups\group-manage.spec.ts:45:7 › A11 — Group manage: member read-only view › A11-04: Member sees "Share on WhatsApp" button
+  -  104 [chromium] › tests\e2e\groups\group-manage.spec.ts:55:7 › A11 — Group manage: member read-only view › A11-05: Member does NOT see pencil/edit icon next to group name
+  -  105 [chromium] › tests\e2e\groups\group-manage.spec.ts:64:7 › A11 — Group manage: member read-only view › A11-06: Member does NOT see "Regenerate Link" button
+  -  106 [chromium] › tests\e2e\groups\group-manage.spec.ts:72:7 › A11 — Group manage: member read-only view › A11-08: Member does NOT see Danger Zone section
+  -  107 [chromium] › tests\e2e\groups\group-manage.spec.ts:88:7 › A11 — Group manage: admin full view › A11-10: Admin sees pencil icon next to group name; clicking enables inline edit
+  -  108 [chromium] › tests\e2e\groups\group-manage.spec.ts:104:7 › A11 — Group manage: admin full view › A11-11: Admin saves group name < 3 chars → error toast
+  -  109 [chromium] › tests\e2e\groups\group-manage.spec.ts:121:7 › A11 — Group manage: admin full view › A11-13: Admin regenerates invite link → toast warns old link is invalid
+  -  110 [chromium] › tests\e2e\groups\group-manage.spec.ts:134:7 › A11 — Group manage: admin full view › A11-14: Admin can "Make Admin" for a member
+  -  111 [chromium] › tests\e2e\groups\group-manage.spec.ts:158:7 › A11 — Group manage: admin full view › A11-19: Admin sees Danger Zone with "Delete Group" button
+  -  112 [chromium] › tests\e2e\groups\group-manage.spec.ts:168:7 › A11 — Group manage: admin full view › A11-20: Delete Group modal requires typing exact group name; mismatch keeps button disabled
+  -  113 [chromium] › tests\e2e\groups\group-manage.spec.ts:189:7 › A11 — Group manage: admin full view › A11-16: Admin can edit member display name inline (pencil icon)
+  -  114 [chromium] › tests\e2e\groups\group-manage.spec.ts:204:7 › A11 — Group manage: admin full view › A11-17: Admin saves member name < 2 chars → error toast
+  -  115 [chromium] › tests\e2e\groups\group-manage.spec.ts:226:7 › A11 — Group manage: admin full view › A11-18: Admin "Remove" button shows confirmation modal; Cancel keeps member
+  x  116 [chromium] › tests\e2e\groups\groups-list.spec.ts:18:7 › A5 — Groups list (/groups) › A5-03: NEXT_PUBLIC_ALLOW_CREATE_GROUP=true → "Create Group" button visible (0ms)
+  -  117 [chromium] › tests\e2e\groups\groups-list.spec.ts:26:7 › A5 — Groups list (/groups) › A5-05: Groups listed as cards with group name and "Enter Group" button
+  -  118 [chromium] › tests\e2e\groups\groups-list.spec.ts:35:7 › A5 — Groups list (/groups) › A5-06: "Enter Group" navigates to the correct group dashboard
+  -  119 [chromium] › tests\e2e\groups\groups-list.spec.ts:57:7 › A4 — Profile: My Groups section › A4-02: Profile shows display name, email, total points, avatar
+  -  120 [chromium] › tests\e2e\groups\groups-list.spec.ts:67:7 › A4 — Profile: My Groups section › A4-03: Avatar colour picker buttons are visible and have accessible labels
+  -  121 [chromium] › tests\e2e\groups\groups-list.spec.ts:78:7 › A4 — Profile: My Groups section › A4-04: Display name fewer than 2 characters → error toast
+  -  122 [chromium] › tests\e2e\groups\groups-list.spec.ts:89:7 › A4 — Profile: My Groups section › A4-05: Save profile with no changes → "Nothing to update" info toast
+  -  123 [chromium] › tests\e2e\groups\groups-list.spec.ts:98:7 › A4 — Profile: My Groups section › A4-08: My Groups list shows groups the user belongs to
+  -  124 [chromium] › tests\e2e\groups\groups-list.spec.ts:108:7 › A4 — Profile: My Groups section › A4-09: Clicking a group in My Groups navigates to that group dashboard
+  -  125 [chromium] › tests\e2e\groups\groups-list.spec.ts:118:7 › A4 — Profile: My Groups section › A4-10: Creator badge shows for groups created by the current user
+  x  126 [chromium] › tests\e2e\groups\join-invite.spec.ts:30:7 › A13 — Join page: unauthenticated › A13-01: Unauthenticated visit with valid invite code → shows sign-in/create-account CTAs (0ms)
+  -  127 [chromium] › tests\e2e\groups\join-invite.spec.ts:42:7 › A13 — Join page: unauthenticated › A13-01b: Sign-in link includes correct ?redirect param
+  -  128 [chromium] › tests\e2e\groups\join-invite.spec.ts:57:7 › A13 — Join page: unauthenticated › A13-02: Invalid invite code → "Invalid invite link" message
+  -  129 [chromium] › tests\e2e\groups\join-invite.spec.ts:64:7 › A13 — Join page: unauthenticated › A13-05: Invite code in URL is case-insensitive (normalised to uppercase)
+  -  130 [chromium] › tests\e2e\groups\join-invite.spec.ts:85:7 › A13 — Join page: already a member › A13-03: Authenticated + already a member → "You're already in this group!"
+  -  131 [chromium] › tests\e2e\groups\join-invite.spec.ts:97:7 › A13 — Join page: already a member › A13-03b: "Go to Group" link points to the correct group
+  -  132 [chromium] › tests\e2e\groups\join-invite.spec.ts:122:7 › A13-04 — Join page: new member join flow › A13-04: Authenticated non-member sees "Join Group" button
+  -  133 [chromium] › tests\e2e\groups\join-invite.spec.ts:144:7 › A9-01 and A10-01 — Points and Settlements: unauthenticated › A9-01: Unauthenticated → redirected to /login
+  -  134 [chromium] › tests\e2e\groups\join-invite.spec.ts:151:7 › A9-01 and A10-01 — Points and Settlements: unauthenticated › A10-01: Settlements page — unauthenticated → redirected to /login
+  -  135 [chromium] › tests\e2e\groups\join-invite.spec.ts:165:7 › A9 — Points page: member › A9-03: Standings leaderboard shows all members sorted by totalPoints descending
+  -  136 [chromium] › tests\e2e\groups\join-invite.spec.ts:176:7 › A9 — Points page: member › A9-06: NEXT_PUBLIC_SHOW_SETTLEMENTS=false → settlements section hidden
+  x  137 [chromium] › tests\e2e\multi-user\multi-user-flows.spec.ts:29:7 › D-01: Real-time bet visibility across sessions › D-01: User A places bet → User B refreshes → sees bet in "Who Betted" section (0ms)
+  -  138 [chromium] › tests\e2e\multi-user\multi-user-flows.spec.ts:91:7 › D-03: Betting close propagates to member view › D-03: Admin closes betting → member refreshes → Change/Remove Bet buttons disappear
+  -  139 [chromium] › tests\e2e\multi-user\multi-user-flows.spec.ts:149:7 › D-05: Admin adds bet for member → member sees it › D-05: Admin adds bet for Raghu via Manage Bets → Raghu sees it on dashboard
+  -  140 [chromium] › tests\e2e\multi-user\multi-user-flows.spec.ts:228:7 › D-02 / D-06 / D-07 — Result propagation and settlement › D-02: Result declaration propagates — covered in cross-page flows B-02
+  -  141 [chromium] › tests\e2e\multi-user\multi-user-flows.spec.ts:234:7 › D-02 / D-06 / D-07 — Result propagation and settlement › D-06: Admin regenerates invite → old link fails
+  x  142 [chromium] › tests\e2e\role-boundary\role-boundary.spec.ts:17:7 › C-01: Member navigates to /matches → access denied › C-01: Member → /groups/[groupId]/matches → "Access denied" card (0ms)
+  -  143 [chromium] › tests\e2e\role-boundary\role-boundary.spec.ts:33:7 › C-02: Non-member → any group sub-route → access denied › C-02a: Non-member → /groups/[groupId] → access denied
+  -  144 [chromium] › tests\e2e\role-boundary\role-boundary.spec.ts:40:7 › C-02: Non-member → any group sub-route → access denied › C-02b: Non-member → /groups/[groupId]/points → access denied
+  -  145 [chromium] › tests\e2e\role-boundary\role-boundary.spec.ts:47:7 › C-02: Non-member → any group sub-route → access denied › C-11: SuperAdmin who is NOT a group member → group pages show access denied
+  -  146 [chromium] › tests\e2e\role-boundary\role-boundary.spec.ts:62:7 › C-03: Non-superAdmin → /admin redirected to /groups › C-03: Non-superAdmin navigates to /admin → redirected to /groups
+  -  147 [chromium] › tests\e2e\role-boundary\role-boundary.spec.ts:74:7 › C-04: Member vs Admin — Matches tab visibility › C-04a: Member does NOT see "Matches" tab in group navbar
+  -  148 [chromium] › tests\e2e\role-boundary\role-boundary.spec.ts:85:7 › C-04: Member vs Admin — Matches tab visibility › C-04b: Group admin DOES see "Matches" tab in group navbar
+  -  149 [chromium] › tests\e2e\role-boundary\role-boundary.spec.ts:103:7 › C-05: Navbar "Admin" link visibility by role › C-05a: Member account dropdown does NOT show "Admin" link
+  -  150 [chromium] › tests\e2e\role-boundary\role-boundary.spec.ts:118:7 › C-06: Member on Group page — no admin controls › C-06: Member sees no pencil icon, no Regenerate Link, no member actions, no Danger Zone
+  -  151 [chromium] › tests\e2e\role-boundary\role-boundary.spec.ts:142:7 › C-08: Member cannot place bet after bettingOpen=false › C-08: Match with bettingOpen=false → no Place Bet button for member
+
+
+  1) [chromium] › tests\e2e\admin\group-matches-admin.spec.ts:156:7 › A8 — Matches admin: admin view › A8-12: "Edit" button on match opens edit modal pre-filled with match data 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByRole('dialog')
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for getByRole('dialog')[22m
+
+
+      168 |       await expect(page.getByText('India vs Australia')).toBeVisible({ timeout: 10_000 });
+      169 |       await page.getByRole('button', { name: /Edit/i }).first().click();
+    > 170 |       await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5_000 });
+          |                                              ^
+      171 |       await expect(page.getByRole('dialog').getByLabel('Team A')).toHaveValue('India', { timeout: 5_000 });
+      172 |     } finally {
+      173 |       await deleteTestDocument('matches', matchId);
+        at C:\DriveX\Work\FriendlyBets\Code\tests\e2e\admin\group-matches-admin.spec.ts:170:46
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\admin-group-matches-admin--a082f--pre-filled-with-match-data-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\admin-group-matches-admin--a082f--pre-filled-with-match-data-chromium\error-context.md
+
+  2) [chromium] › tests\e2e\admin\group-matches-admin.spec.ts:178:7 › A8 — Matches admin: admin view › A8-13: "Delete" button shows confirmation modal; confirm removes match 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByRole('dialog')
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for getByRole('dialog')[22m
+
+
+      190 |       await expect(page.getByText('India vs Bangladesh')).toBeVisible({ timeout: 10_000 });
+      191 |       await page.getByRole('button', { name: /Delete/i }).first().click();
+    > 192 |       await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5_000 });
+          |                                              ^
+      193 |       await page.getByRole('dialog').getByRole('button', { name: /Delete/i }).click();
+      194 |       await expect(page.getByText('Match deleted')).toBeVisible({ timeout: 10_000 });
+      195 |       matchId = ''; // already deleted by the UI
+        at C:\DriveX\Work\FriendlyBets\Code\tests\e2e\admin\group-matches-admin.spec.ts:192:46
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\admin-group-matches-admin--d0307-modal-confirm-removes-match-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\admin-group-matches-admin--d0307-modal-confirm-removes-match-chromium\error-context.md
+
+  3) [chromium] › tests\e2e\admin\group-matches-admin.spec.ts:202:7 › A8 — Matches admin: admin view › A8-14: "Close Betting" / "Open Betting" toggle updates match betting state 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByText('India')
+    Expected: visible
+    Error: strict mode violation: getByText('India') resolved to 2 elements:
+        1) <span class="font-semibold text-[var(--text-primary)]">…</span> aka getByText('India vs South Africa')
+        2) <option value="team_a">India wins</option> aka locator('section').filter({ hasText: 'All MatchesAllOngoingUpcomingPreviousIndia vs South AfricaT20UpcomingManage' }).getByRole('combobox')
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 10000ms[22m
+    [2m  - waiting for getByText('India')[22m
+
+
+      212 |     try {
+      213 |       await gotoMatches(page, groupId);
+    > 214 |       await expect(page.getByText('India')).toBeVisible({ timeout: 10_000 });
+          |                                             ^
+      215 |       await page.getByRole('button', { name: /Close Betting/i }).first().click();
+      216 |       await expect(page.getByText(/Betting closed/i)).toBeVisible({ timeout: 8_000 });
+      217 |       await page.getByRole('button', { name: /Open Betting/i }).first().click();
+        at C:\DriveX\Work\FriendlyBets\Code\tests\e2e\admin\group-matches-admin.spec.ts:214:45
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\admin-group-matches-admin--87be6-updates-match-betting-state-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\admin-group-matches-admin--87be6-updates-match-betting-state-chromium\error-context.md
+
+  4) [chromium] › tests\e2e\admin\group-matches-admin.spec.ts:225:7 › A8 — Matches admin: admin view › A8-15: Declare result → points settled, match shows completed 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByText('India')
+    Expected: visible
+    Error: strict mode violation: getByText('India') resolved to 4 elements:
+        1) <span class="font-semibold text-[var(--text-primary)]">…</span> aka getByText('India vs Zimbabwe')
+        2) <option value="team_a">India wins</option> aka getByRole('combobox').nth(2)
+        3) <span class="font-semibold text-[var(--text-primary)]">…</span> aka getByText('India vs Australia')
+        4) <option value="team_a">India wins</option> aka getByRole('combobox').nth(3)
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 10000ms[22m
+    [2m  - waiting for getByText('India')[22m
+
+
+      236 |     try {
+      237 |       await gotoMatches(page, groupId);
+    > 238 |       await expect(page.getByText('India')).toBeVisible({ timeout: 10_000 });
+          |                                             ^
+      239 |
+      240 |       const resultSelect = page.locator('select').filter({ hasText: /Result|pending/ }).first();
+      241 |       if (await resultSelect.isVisible()) {
+        at C:\DriveX\Work\FriendlyBets\Code\tests\e2e\admin\group-matches-admin.spec.ts:238:45
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\admin-group-matches-admin--03921-ttled-match-shows-completed-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\admin-group-matches-admin--03921-ttled-match-shows-completed-chromium\error-context.md
+
+  5) [chromium] › tests\e2e\admin\group-matches-admin.spec.ts:252:7 › A8 — Matches admin: admin view › A8-17: "Manage Bets" button opens modal with all group members 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByText('India')
+    Expected: visible
+    Error: strict mode violation: getByText('India') resolved to 4 elements:
+        1) <span class="font-semibold text-[var(--text-primary)]">…</span> aka getByText('India vs Afghanistan')
+        2) <option value="team_a">India wins</option> aka getByRole('combobox').nth(2)
+        3) <span class="font-semibold text-[var(--text-primary)]">…</span> aka getByText('India vs Australia')
+        4) <option value="team_a">India wins</option> aka getByRole('combobox').nth(3)
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 10000ms[22m
+    [2m  - waiting for getByText('India')[22m
+
+
+      262 |     try {
+      263 |       await gotoMatches(page, groupId);
+    > 264 |       await expect(page.getByText('India')).toBeVisible({ timeout: 10_000 });
+          |                                             ^
+      265 |       await page.getByRole('button', { name: /Manage Bets/i }).first().click();
+      266 |       await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5_000 });
+      267 |       await expect(
+        at C:\DriveX\Work\FriendlyBets\Code\tests\e2e\admin\group-matches-admin.spec.ts:264:45
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\admin-group-matches-admin--b40ee-odal-with-all-group-members-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\admin-group-matches-admin--b40ee-odal-with-all-group-members-chromium\error-context.md
+
+  6) [chromium] › tests\e2e\cross-page\cross-page-flows.spec.ts:39:7 › B-02: Create match → member bets → declare result → check points › B-02: Full flow — match created, bet placed, result declared, standings updated 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByText('India')
+    Expected: visible
+    Error: strict mode violation: getByText('India') resolved to 3 elements:
+        1) <span class="font-semibold text-[var(--text-primary)]">…</span> aka getByText('India vs Australia')
+        2) <option value="team_a">India wins</option> aka locator('section').filter({ hasText: 'All MatchesAllOngoingUpcomingPreviousIndia vs AustraliaT20UpcomingManage' }).getByRole('combobox')
+        3) <span class="rounded-full bg-[var(--bg-card)] px-2 py-0.5 font-medium text-[var(--text-primary)]">India</span> aka getByText('India', { exact: true })
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 15000ms[22m
+    [2m  - waiting for getByText('India')[22m
+
+
+      72 |     await pageAdmin.waitForLoadState('domcontentloaded');
+      73 |     await pageAdmin.waitForTimeout(1500);
+    > 74 |     await expect(pageAdmin.getByText('India')).toBeVisible({ timeout: 15_000 });
+         |                                                ^
+      75 |
+      76 |     // Close betting
+      77 |     await pageAdmin.getByRole('button', { name: /Close Betting/i }).first().click();
+        at C:\DriveX\Work\FriendlyBets\Code\tests\e2e\cross-page\cross-page-flows.spec.ts:74:48
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\cross-page-cross-page-flow-ae320--declared-standings-updated-chromium\test-failed-2.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\cross-page-cross-page-flow-ae320--declared-standings-updated-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\cross-page-cross-page-flow-ae320--declared-standings-updated-chromium\error-context.md
+
+  7) [chromium] › tests\e2e\cross-page\cross-page-flows.spec.ts:105:7 › B-03: Admin promotes member → promoted user accesses matches › B-03: Promote Raghu → Raghu sees Matches tab 
+
+    Error: worker process exited unexpectedly (code=3221225794, signal=null)
+
+  8) [chromium] › tests\e2e\edge-cases\edge-cases.spec.ts:24:7 › E-01: Empty group dashboard › E-01: Group with no matches → all sections show empty-state (no crash) 
+
+    Error: worker process exited unexpectedly (code=3221225794, signal=null)
+
+  9) [chromium] › tests\e2e\groups\create-group.spec.ts:15:7 › A6-01 — Create Group: unauthenticated redirect › A6-01: Unauthenticated → redirected to /login 
+
+    Error: worker process exited unexpectedly (code=3221225794, signal=null)
+
+  10) [chromium] › tests\e2e\groups\group-dashboard.spec.ts:20:7 › A7-01 — Group dashboard: unauthenticated › A7-01: Unauthenticated → redirected to /login 
+
+    Error: worker process exited unexpectedly (code=3221225794, signal=null)
+
+  11) [chromium] › tests\e2e\groups\group-manage.spec.ts:17:7 › A11-01 — Group manage: unauthenticated › A11-01: Unauthenticated → redirected to /login 
+
+    Error: worker process exited unexpectedly (code=3221225794, signal=null)
+
+  12) [chromium] › tests\e2e\groups\groups-list.spec.ts:18:7 › A5 — Groups list (/groups) › A5-03: NEXT_PUBLIC_ALLOW_CREATE_GROUP=true → "Create Group" button visible 
+
+    Error: worker process exited unexpectedly (code=3221225794, signal=null)
+
+  13) [chromium] › tests\e2e\groups\join-invite.spec.ts:30:7 › A13 — Join page: unauthenticated › A13-01: Unauthenticated visit with valid invite code → shows sign-in/create-account CTAs 
+
+    Error: worker process exited unexpectedly (code=3221225794, signal=null)
+
+  14) [chromium] › tests\e2e\multi-user\multi-user-flows.spec.ts:29:7 › D-01: Real-time bet visibility across sessions › D-01: User A places bet → User B refreshes → sees bet in "Who Betted" section 
+
+    Error: worker process exited unexpectedly (code=3221225794, signal=null)
+
+  15) [chromium] › tests\e2e\role-boundary\role-boundary.spec.ts:17:7 › C-01: Member navigates to /matches → access denied › C-01: Member → /groups/[groupId]/matches → "Access denied" card 
+
+    Error: worker process exited unexpectedly (code=3221225794, signal=null)
+
+  15 failed
+    [chromium] › tests\e2e\admin\group-matches-admin.spec.ts:156:7 › A8 — Matches admin: admin view › A8-12: "Edit" button on match opens edit modal pre-filled with match data 
+    [chromium] › tests\e2e\admin\group-matches-admin.spec.ts:178:7 › A8 — Matches admin: admin view › A8-13: "Delete" button shows confirmation modal; confirm removes match 
+    [chromium] › tests\e2e\admin\group-matches-admin.spec.ts:202:7 › A8 — Matches admin: admin view › A8-14: "Close Betting" / "Open Betting" toggle updates match betting state 
+    [chromium] › tests\e2e\admin\group-matches-admin.spec.ts:225:7 › A8 — Matches admin: admin view › A8-15: Declare result → points settled, match shows completed 
+    [chromium] › tests\e2e\admin\group-matches-admin.spec.ts:252:7 › A8 — Matches admin: admin view › A8-17: "Manage Bets" button opens modal with all group members 
+    [chromium] › tests\e2e\cross-page\cross-page-flows.spec.ts:39:7 › B-02: Create match → member bets → declare result → check points › B-02: Full flow — match created, bet placed, result declared, standings updated 
+    [chromium] › tests\e2e\cross-page\cross-page-flows.spec.ts:105:7 › B-03: Admin promotes member → promoted user accesses matches › B-03: Promote Raghu → Raghu sees Matches tab 
+    [chromium] › tests\e2e\edge-cases\edge-cases.spec.ts:24:7 › E-01: Empty group dashboard › E-01: Group with no matches → all sections show empty-state (no crash) 
+    [chromium] › tests\e2e\groups\create-group.spec.ts:15:7 › A6-01 — Create Group: unauthenticated redirect › A6-01: Unauthenticated → redirected to /login 
+    [chromium] › tests\e2e\groups\group-dashboard.spec.ts:20:7 › A7-01 — Group dashboard: unauthenticated › A7-01: Unauthenticated → redirected to /login 
+    [chromium] › tests\e2e\groups\group-manage.spec.ts:17:7 › A11-01 — Group manage: unauthenticated › A11-01: Unauthenticated → redirected to /login 
+    [chromium] › tests\e2e\groups\groups-list.spec.ts:18:7 › A5 — Groups list (/groups) › A5-03: NEXT_PUBLIC_ALLOW_CREATE_GROUP=true → "Create Group" button visible 
+    [chromium] › tests\e2e\groups\join-invite.spec.ts:30:7 › A13 — Join page: unauthenticated › A13-01: Unauthenticated visit with valid invite code → shows sign-in/create-account CTAs 
+    [chromium] › tests\e2e\multi-user\multi-user-flows.spec.ts:29:7 › D-01: Real-time bet visibility across sessions › D-01: User A places bet → User B refreshes → sees bet in "Who Betted" section 
+    [chromium] › tests\e2e\role-boundary\role-boundary.spec.ts:17:7 › C-01: Member navigates to /matches → access denied › C-01: Member → /groups/[groupId]/matches → "Access denied" card 
+  16 skipped
+  79 did not run
+  41 passed (6.3m)
