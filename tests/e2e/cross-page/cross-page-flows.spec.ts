@@ -223,8 +223,9 @@ test.describe('B-07: Abandoned match → bet status=refunded', () => {
     await pageMember.goto(`/groups/${groupId}`);
     await pageMember.waitForLoadState('domcontentloaded');
     await pageMember.waitForTimeout(1500);
-    await pageMember.getByRole('button', { name: /Place Bet/i }).first().click();
-    await pageMember.getByRole('button', { name: 'India' }).first().click();
+    const b07MatchCard = pageMember.locator('div').filter({ hasText: /India.*England|England.*India/ }).filter({ has: pageMember.getByRole('button', { name: /Place Bet/i }) }).last();
+    await b07MatchCard.getByRole('button', { name: /Place Bet/i }).first().click();
+    await b07MatchCard.getByRole('button', { name: 'India' }).first().click();
     await pageMember.getByPlaceholder('Custom amount').fill('500');
     await pageMember.getByRole('button', { name: /Confirm Bet/i }).click();
     await expect(pageMember.getByText(/placed successfully/i)).toBeVisible({ timeout: 15_000 });

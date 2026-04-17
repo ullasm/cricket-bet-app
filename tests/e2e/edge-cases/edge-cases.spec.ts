@@ -49,7 +49,8 @@ test.describe('E-02: Betting locked after bettingOpen=false', () => {
     await page.goto(dashUrl(groupId));
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(1500);
-    await expect(page.getByRole('button', { name: /Place Bet/i })).not.toBeVisible({ timeout: 5_000 });
+    const sriLankaCard = page.locator('div').filter({ hasText: /India.*Sri Lanka|Sri Lanka.*India/ }).last();
+    await expect(sriLankaCard.getByRole('button', { name: /Place Bet/i })).not.toBeVisible({ timeout: 5_000 });
   });
 
 });
@@ -67,11 +68,12 @@ test.describe('E-03: Draw option gating', () => {
     await page.goto(dashUrl(groupId));
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(1500);
-    await page.getByRole('button', { name: /Place Bet/i }).first().click();
+    const matchCard = page.locator('div').filter({ hasText: /England.*Australia|Australia.*England/ }).filter({ has: page.getByRole('button', { name: /Place Bet/i }) }).last();
+    await matchCard.getByRole('button', { name: /Place Bet/i }).first().click();
 
-    await expect(page.getByRole('button', { name: 'England' }).first()).toBeVisible({ timeout: 8_000 });
-    await expect(page.getByRole('button', { name: 'Draw' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Australia' }).first()).toBeVisible();
+    await expect(matchCard.getByRole('button', { name: 'England' }).first()).toBeVisible({ timeout: 8_000 });
+    await expect(matchCard.getByRole('button', { name: 'Draw' })).toBeVisible();
+    await expect(matchCard.getByRole('button', { name: 'Australia' }).first()).toBeVisible();
   });
 
 });

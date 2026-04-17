@@ -60,8 +60,8 @@ test.describe('E-02 / A7-05 — Betting locked when bettingOpen=false', () => {
     await page.waitForTimeout(1500);
 
     // Scope to the specific match card to avoid collisions with parallel tests
-    const matchCard = page.locator('div').filter({ hasText: /India.*New Zealand|New Zealand.*India/ }).filter({ has: page.getByRole('button', { name: /Place Bet/i }) }).first();
-    await matchCard.getByRole('button', { name: /Place Bet/i }).click();
+    const matchCard = page.locator('div').filter({ hasText: /India.*New Zealand|New Zealand.*India/ }).filter({ has: page.getByRole('button', { name: /Place Bet/i }) }).last();
+    await matchCard.getByRole('button', { name: /Place Bet/i }).first().click();
     await matchCard.getByRole('button', { name: 'India' }).first().click();
     await page.getByPlaceholder('Custom amount').fill('200');
     await page.getByRole('button', { name: /Confirm Bet/i }).click();
