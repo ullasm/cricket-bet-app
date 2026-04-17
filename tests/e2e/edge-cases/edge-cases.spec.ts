@@ -29,7 +29,7 @@ test.describe('E-01: Empty group dashboard', () => {
     await page.waitForTimeout(1500);
 
     // Should load without error
-    await expect(page.getByText(/access denied/i)).not.toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText(/access denied/i)).not.toBeVisible();
     // Page should render (at minimum shows the navbar)
     expect(page.url()).toContain(groupId);
   });
@@ -50,7 +50,7 @@ test.describe('E-02: Betting locked after bettingOpen=false', () => {
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(1500);
     const sriLankaCard = page.locator('div').filter({ hasText: /India.*Sri Lanka|Sri Lanka.*India/ }).last();
-    await expect(sriLankaCard.getByRole('button', { name: /Place Bet/i })).not.toBeVisible({ timeout: 5_000 });
+    await expect(sriLankaCard.getByRole('button', { name: /Place Bet/i })).not.toBeVisible();
   });
 
 });
@@ -70,10 +70,11 @@ test.describe('E-03: Draw option gating', () => {
     await page.waitForTimeout(1500);
     const matchCard = page.locator('div').filter({ hasText: /England.*Australia|Australia.*England/ }).filter({ has: page.getByRole('button', { name: /Place Bet/i }) }).last();
     await matchCard.getByRole('button', { name: /Place Bet/i }).first().click();
+    await page.waitForTimeout(500);
 
-    await expect(matchCard.getByRole('button', { name: 'England' }).first()).toBeVisible({ timeout: 8_000 });
-    await expect(matchCard.getByRole('button', { name: 'Draw' })).toBeVisible();
-    await expect(matchCard.getByRole('button', { name: 'Australia' }).first()).toBeVisible();
+    await expect(matchCard.locator('button', { hasText: /^England$/ }).first()).toBeVisible();
+    await expect(matchCard.locator('button', { hasText: /^Draw$/ })).toBeVisible();
+    await expect(matchCard.locator('button', { hasText: /^Australia$/ }).first()).toBeVisible();
   });
 
 });
@@ -113,7 +114,8 @@ test.describe('E-05 / E-06: Stake input', () => {
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(1500);
     await page.getByRole('button', { name: /Place Bet/i }).first().click();
-    await page.getByRole('button', { name: 'India' }).first().click();
+    await page.waitForTimeout(500);
+    await page.locator('button', { hasText: /^India$/ }).first().click();
 
     const stakeInput = page.getByPlaceholder('Custom amount');
     await stakeInput.clear();
@@ -138,7 +140,8 @@ test.describe('E-05 / E-06: Stake input', () => {
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(1500);
     await page.getByRole('button', { name: /Place Bet/i }).first().click();
-    await page.getByRole('button', { name: 'India' }).first().click();
+    await page.waitForTimeout(500);
+    await page.locator('button', { hasText: /^India$/ }).first().click();
 
     const stakeInput = page.getByPlaceholder('Custom amount');
     await stakeInput.fill('0');
@@ -164,18 +167,19 @@ test.describe('E-07: Remove bet confirmation guard', () => {
 
     // Place bet
     await page.getByRole('button', { name: /Place Bet/i }).first().click();
-    await page.getByRole('button', { name: 'India' }).first().click();
+    await page.waitForTimeout(500);
+    await page.locator('button', { hasText: /^India$/ }).first().click();
     await page.getByPlaceholder('Custom amount').fill('500');
     await page.getByRole('button', { name: /Confirm Bet/i }).click();
-    await expect(page.getByText(/placed successfully/i)).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(/placed successfully/i)).toBeVisible();
 
     // Click Remove Bet — modal appears
     await page.getByRole('button', { name: /Remove Bet/i }).first().click();
-    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByRole('dialog')).toBeVisible();
 
     // Cancel — bet still present
     await page.getByRole('dialog').getByRole('button', { name: /No/i }).click();
-    await expect(page.getByRole('button', { name: /Remove Bet/i }).first()).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByRole('button', { name: /Remove Bet/i }).first()).toBeVisible();
   });
 
 });
@@ -188,7 +192,7 @@ test.describe('E-08: Invalid invite code', () => {
     await page.goto('/join/XXXXXX');
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(1500);
-    await expect(page.getByText(/invalid invite link/i)).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(/invalid invite link/i)).toBeVisible();
   });
 
 });
@@ -201,7 +205,7 @@ test.describe('E-09: Group name min-length on Create Group', () => {
     await page.goto('/groups/create');
     await page.getByLabel('Group Name').fill('AB');
     await page.getByRole('button', { name: 'Create Group' }).click();
-    await expect(page.getByText(/at least 3 characters/i)).toBeVisible({ timeout: 8_000 });
+    await expect(page.getByText(/at least 3 characters/i)).toBeVisible();
   });
 
 });
@@ -218,7 +222,7 @@ test.describe('E-10: Profile display name min-length', () => {
     await nameInput.clear();
     await nameInput.fill('X');
     await page.getByRole('button', { name: /Save Changes/i }).click();
-    await expect(page.getByText(/at least 2 characters/i)).toBeVisible({ timeout: 8_000 });
+    await expect(page.getByText(/at least 2 characters/i)).toBeVisible();
   });
 
 });
@@ -234,7 +238,7 @@ test.describe('E-11: Delete group type-to-confirm guard', () => {
     await page.waitForTimeout(1500);
 
     await page.getByRole('button', { name: /Delete Group/i }).click();
-    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByRole('dialog')).toBeVisible();
 
     const confirmInput = page.getByRole('dialog').getByRole('textbox');
     const deleteBtn = page.getByRole('dialog').getByRole('button', { name: /Delete Group/i });
@@ -268,7 +272,7 @@ test.describe('E-13: Past matches filter empty state', () => {
     if (await bettedBtn.isVisible()) {
       await bettedBtn.click();
       // Should not crash — page remains rendered
-      await expect(page.getByText(/access denied/i)).not.toBeVisible({ timeout: 5_000 });
+      await expect(page.getByText(/access denied/i)).not.toBeVisible();
     }
   });
 
@@ -283,7 +287,7 @@ test.describe('E-14: Member name edit min-length (admin)', () => {
     await page.goto(`/groups/${groupId}/group`);
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(1500);
-    await expect(page.getByText('Raghu')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText('Raghu')).toBeVisible();
 
     const editBtns = page.getByRole('button', { name: /edit|pencil/i });
     const count = await editBtns.count();
@@ -293,7 +297,7 @@ test.describe('E-14: Member name edit min-length (admin)', () => {
       await memberInput.clear();
       await memberInput.fill('X');
       await page.getByRole('button', { name: /Save|✓/i }).last().click();
-      await expect(page.getByText(/at least 2 characters/i)).toBeVisible({ timeout: 8_000 });
+      await expect(page.getByText(/at least 2 characters/i)).toBeVisible();
     }
   });
 
@@ -310,7 +314,7 @@ test.describe('E-15: Settlements empty state', () => {
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(1500);
     // Page should load without error
-    await expect(page.getByText(/access denied/i)).not.toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText(/access denied/i)).not.toBeVisible();
   });
 
 });
@@ -335,7 +339,7 @@ test.describe('E-16: Already-member join', () => {
     await page.goto(`/join/${inviteCode}`);
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(1500);
-    await expect(page.getByText(/already in this group/i)).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(/already in this group/i)).toBeVisible();
   });
 
 });
@@ -380,7 +384,7 @@ test.describe('E-19: No upcoming matches in admin search', () => {
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(1500);
     // Page should load; if no master matches exist, section should handle gracefully
-    await expect(page.getByText(/access denied/i)).not.toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText(/access denied/i)).not.toBeVisible();
   });
 
 });
@@ -398,15 +402,15 @@ test.describe('E-20: Manage Bets shows members', () => {
     await page.goto(matchesUrl(groupId));
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(1500);
-    await expect(page.getByText('India vs Nepal')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText('India vs Nepal')).toBeVisible();
 
     await page.getByRole('button', { name: /Manage Bets/i }).first().click();
-    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByRole('dialog')).toBeVisible();
 
     // Friends group has members: Ullas, Vasu, Raghu, Chethan, Gourish, Shrimanth, Kulli, Kutti
     await expect(
       page.getByRole('dialog').getByText('Raghu').or(page.getByRole('dialog').getByText('Ullas')).first()
-    ).toBeVisible({ timeout: 8_000 });
+    ).toBeVisible();
   });
 
 });

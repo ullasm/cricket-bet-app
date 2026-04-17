@@ -35,7 +35,7 @@ test.describe('A13 — Join page: unauthenticated', () => {
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(1500);
 
-    await expect(page.getByRole('link', { name: /Sign in to join/i })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole('link', { name: /Sign in to join/i })).toBeVisible();
     await expect(page.getByRole('link', { name: /Create account/i })).toBeVisible();
   });
 
@@ -59,7 +59,7 @@ test.describe('A13 — Join page: unauthenticated', () => {
     await page.goto('/join/XXXXXX');
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(1500);
-    await expect(page.getByText(/invalid invite link/i)).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(/invalid invite link/i)).toBeVisible();
   });
 
   test('A13-05: Invite code in URL is case-insensitive (normalised to uppercase)', async ({ page }) => {
@@ -72,7 +72,7 @@ test.describe('A13 — Join page: unauthenticated', () => {
     await page.waitForTimeout(1500);
 
     // Should find the group, not show "Invalid invite link"
-    await expect(page.getByText(/invalid invite link/i)).not.toBeVisible({ timeout: 8_000 });
+    await expect(page.getByText(/invalid invite link/i)).not.toBeVisible();
     await expect(page.getByRole('link', { name: /Sign in to join/i })).toBeVisible();
   });
 
@@ -91,7 +91,7 @@ test.describe('A13 — Join page: already a member', () => {
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(1500);
 
-    await expect(page.getByText(/already in this group/i)).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(/already in this group/i)).toBeVisible();
     await expect(page.getByRole('link', { name: /Go to Group/i })).toBeVisible();
   });
 
@@ -130,7 +130,7 @@ test.describe('A13-04 — Join page: new member join flow', () => {
 
     // Chethan is not in the family group — should see join confirmation
     const joinBtn = page.getByRole('button', { name: /Join Group/i });
-    await expect(joinBtn).toBeVisible({ timeout: 15_000 });
+    await expect(joinBtn).toBeVisible();
 
     // Note: We do NOT click Join to avoid mutating membership in the test session.
     // The actual join flow is covered in cross-page flow B-01.
@@ -169,9 +169,9 @@ test.describe('A9 — Points page: member', () => {
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(1500);
     // Page loads without access denied
-    await expect(page.getByText(/access denied/i)).not.toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText(/access denied/i)).not.toBeVisible();
     // Should show some member names
-    await expect(page.getByRole('list').getByText('Raghu')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole('list').getByText('Raghu')).toBeVisible();
   });
 
   test('A9-06: NEXT_PUBLIC_SHOW_SETTLEMENTS=false → settlements section hidden', async ({ page }) => {
@@ -180,7 +180,7 @@ test.describe('A9 — Points page: member', () => {
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(1500);
     // When SHOW_SETTLEMENTS is false, settlements section is not rendered
-    await expect(page.getByText(/settlements/i)).not.toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText(/settlements/i)).not.toBeVisible();
   });
 
 });

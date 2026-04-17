@@ -56,10 +56,11 @@ test.describe('D-01: Real-time bet visibility across sessions', () => {
 
       // User A places a bet
       await pageA.getByRole('button', { name: /Place Bet/i }).first().click();
-      await pageA.getByRole('button', { name: 'India' }).first().click();
+      await pageA.waitForTimeout(500);
+      await pageA.locator('button', { hasText: /^India$/ }).first().click();
       await pageA.getByPlaceholder('Custom amount').fill('500');
       await pageA.getByRole('button', { name: /Confirm Bet/i }).click();
-      await expect(pageA.getByText(/placed successfully/i)).toBeVisible({ timeout: 15_000 });
+      await expect(pageA.getByText(/placed successfully/i)).toBeVisible();
 
       // User B refreshes
       await pageB.reload();
@@ -69,7 +70,7 @@ test.describe('D-01: Real-time bet visibility across sessions', () => {
       // User B should see Ullas's bet in the Who Betted section
       await expect(
         pageB.getByText(/India vs Australia/i).first().or(pageB.getByText(/Ullas/i).first()).first()
-      ).toBeVisible({ timeout: 15_000 });
+      ).toBeVisible();
     } finally {
       await ctx1.close();
       await ctx2.close();
@@ -106,10 +107,11 @@ test.describe('D-03: Betting close propagates to member view', () => {
     await pageMember.waitForLoadState('domcontentloaded');
     await pageMember.waitForTimeout(1500);
     await pageMember.getByRole('button', { name: /Place Bet/i }).first().click();
-    await pageMember.getByRole('button', { name: 'India' }).first().click();
+    await pageMember.waitForTimeout(500);
+    await pageMember.locator('button', { hasText: /^India$/ }).first().click();
     await pageMember.getByPlaceholder('Custom amount').fill('300');
     await pageMember.getByRole('button', { name: /Confirm Bet/i }).click();
-    await expect(pageMember.getByText(/placed successfully/i)).toBeVisible({ timeout: 15_000 });
+    await expect(pageMember.getByText(/placed successfully/i)).toBeVisible();
 
     // Admin closes betting
     const ctxAdmin = await browser.newContext();
@@ -119,16 +121,16 @@ test.describe('D-03: Betting close propagates to member view', () => {
     await pageAdmin.goto(matchesUrl(groupId));
     await pageAdmin.waitForLoadState('domcontentloaded');
     await pageAdmin.waitForTimeout(1500);
-    await expect(pageAdmin.getByText('India vs England')).toBeVisible({ timeout: 15_000 });
+    await expect(pageAdmin.getByText('India vs England')).toBeVisible();
     await pageAdmin.getByRole('button', { name: /Close Betting/i }).first().click();
-    await expect(pageAdmin.getByText(/Betting closed/i)).toBeVisible({ timeout: 8_000 });
+    await expect(pageAdmin.getByText(/Betting closed/i)).toBeVisible();
 
     // Member refreshes — Change/Remove Bet should disappear
     await pageMember.reload();
     await pageMember.waitForLoadState('domcontentloaded');
     await pageMember.waitForTimeout(1500);
-    await expect(pageMember.getByRole('button', { name: /Change Bet/i })).not.toBeVisible({ timeout: 8_000 });
-    await expect(pageMember.getByRole('button', { name: /Remove Bet/i })).not.toBeVisible({ timeout: 5_000 });
+    await expect(pageMember.getByRole('button', { name: /Change Bet/i })).not.toBeVisible();
+    await expect(pageMember.getByRole('button', { name: /Remove Bet/i })).not.toBeVisible();
 
     await ctxMember.close();
     await ctxAdmin.close();
@@ -163,14 +165,14 @@ test.describe('D-05: Admin adds bet for member → member sees it', () => {
     await pageAdmin.goto(matchesUrl(groupId));
     await pageAdmin.waitForLoadState('domcontentloaded');
     await pageAdmin.waitForTimeout(1500);
-    await expect(pageAdmin.getByText('India vs Pakistan')).toBeVisible({ timeout: 15_000 });
+    await expect(pageAdmin.getByText('India vs Pakistan')).toBeVisible();
 
     await pageAdmin.getByRole('button', { name: /Manage Bets/i }).first().click();
-    await expect(pageAdmin.getByRole('dialog')).toBeVisible({ timeout: 5_000 });
+    await expect(pageAdmin.getByRole('dialog')).toBeVisible();
 
     // Find Raghu in the modal and set a bet
     const dialog = pageAdmin.getByRole('dialog');
-    await expect(dialog.getByText('Raghu')).toBeVisible({ timeout: 8_000 });
+    await expect(dialog.getByText('Raghu')).toBeVisible();
 
     // Find the outcome selector for Raghu and select India
     // The modal uses select/option elements per member row
@@ -189,7 +191,7 @@ test.describe('D-05: Admin adds bet for member → member sees it', () => {
       const saveBtn = raghuSection.getByRole('button', { name: /Save/i }).first();
       if (await saveBtn.isVisible()) {
         await saveBtn.click();
-        await expect(pageAdmin.getByText(/saved|updated|bet/i).first()).toBeVisible({ timeout: 8_000 });
+        await expect(pageAdmin.getByText(/saved|updated|bet/i).first()).toBeVisible();
       }
     }
 
@@ -205,7 +207,7 @@ test.describe('D-05: Admin adds bet for member → member sees it', () => {
     await expect(
       pageRaghu.getByRole('button', { name: /Change Bet/i }).first()
         .or(pageRaghu.getByText(/India/i).first())
-    ).toBeVisible({ timeout: 15_000 });
+    ).toBeVisible();
 
     await ctxAdmin.close();
     await ctxRaghu.close();
@@ -245,9 +247,9 @@ test.describe('D-02 / D-06 / D-07 — Result propagation and settlement', () => 
     await pageAdmin.waitForTimeout(1500);
 
     const regenBtn = pageAdmin.getByRole('button', { name: /Regenerate/i });
-    await expect(regenBtn).toBeVisible({ timeout: 15_000 });
+    await expect(regenBtn).toBeVisible();
     await regenBtn.click();
-    await expect(pageAdmin.getByText(/old link is now invalid/i)).toBeVisible({ timeout: 8_000 });
+    await expect(pageAdmin.getByText(/old link is now invalid/i)).toBeVisible();
 
     await ctxAdmin.close();
   });

@@ -26,7 +26,7 @@ test.describe('A11-01 — Group manage: unauthenticated', () => {
 // ── Member read-only view ─────────────────────────────────────────────────────
 
 test.describe('A11 — Group manage: member read-only view', () => {
-  test.beforeEach(async ({ page }) => { await loginAsRole(page, 'friends_member_raghu'); });
+  test.beforeEach(async ({ page }) => { await loginAsRole(page, 'friends_member_kutti'); });
 
   test('A11-03: Member sees group name, invite link, member list with role badges', async ({ page }) => {
     const groupId = getGroupId('friends');
@@ -35,7 +35,7 @@ test.describe('A11 — Group manage: member read-only view', () => {
     await page.waitForTimeout(1500);
 
     // Group name should appear
-    await expect(page.getByRole('main').getByText('GroupA')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole('main').getByText('GroupA')).toBeVisible();
     // Invite link section
     await expect(page.getByRole('button', { name: /Copy/i })).toBeVisible();
     // Members list — Raghu should appear
@@ -47,9 +47,10 @@ test.describe('A11 — Group manage: member read-only view', () => {
     await page.goto(manageUrl(groupId));
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(1500);
-    await expect(page.getByRole('link', { name: /Share on WhatsApp/i }).or(
+    // WhatsApp link is a raw <a> element without role="link", use element locator
+    await expect(page.locator('a', { hasText: /Share on WhatsApp/i }).or(
       page.getByText(/WhatsApp/i)
-    )).toBeVisible({ timeout: 15_000 });
+    )).toBeVisible();
   });
 
   test('A11-05: Member does NOT see pencil/edit icon next to group name', async ({ page }) => {
@@ -58,7 +59,7 @@ test.describe('A11 — Group manage: member read-only view', () => {
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(1500);
     // No inline edit controls for group name
-    await expect(page.getByRole('button', { name: /edit group name|rename/i })).not.toBeVisible({ timeout: 5_000 });
+    await expect(page.getByRole('button', { name: /edit group name|rename/i })).not.toBeVisible();
   });
 
   test('A11-06: Member does NOT see "Regenerate Link" button', async ({ page }) => {
@@ -66,7 +67,7 @@ test.describe('A11 — Group manage: member read-only view', () => {
     await page.goto(manageUrl(groupId));
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(1500);
-    await expect(page.getByRole('button', { name: /Regenerate/i })).not.toBeVisible({ timeout: 5_000 });
+    await expect(page.getByRole('button', { name: /Regenerate/i })).not.toBeVisible();
   });
 
   test('A11-08: Member does NOT see Danger Zone section', async ({ page }) => {
@@ -74,8 +75,8 @@ test.describe('A11 — Group manage: member read-only view', () => {
     await page.goto(manageUrl(groupId));
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(1500);
-    await expect(page.getByText(/Danger Zone/i)).not.toBeVisible({ timeout: 5_000 });
-    await expect(page.getByRole('button', { name: /Delete Group/i })).not.toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText(/Danger Zone/i)).not.toBeVisible();
+    await expect(page.getByRole('button', { name: /Delete Group/i })).not.toBeVisible();
   });
 
 });
@@ -93,12 +94,12 @@ test.describe('A11 — Group manage: admin full view', () => {
 
     // Pencil/edit button for group name
     const editBtn = page.getByRole('button', { name: /edit|pencil/i }).first();
-    await expect(editBtn).toBeVisible({ timeout: 15_000 });
+    await expect(editBtn).toBeVisible();
     await editBtn.click();
 
     // An input field for the group name should appear
     const nameInput = page.getByRole('textbox').first();
-    await expect(nameInput).toBeVisible({ timeout: 5_000 });
+    await expect(nameInput).toBeVisible();
   });
 
   test('A11-11: Admin saves group name < 3 chars → error toast', async ({ page }) => {
@@ -115,7 +116,7 @@ test.describe('A11 — Group manage: admin full view', () => {
     await nameInput.fill('AB');
 
     await page.getByRole('button', { name: /Save|✓|save/i }).first().click();
-    await expect(page.getByText(/at least 3 characters/i)).toBeVisible({ timeout: 8_000 });
+    await expect(page.getByText(/at least 3 characters/i)).toBeVisible();
   });
 
   test('A11-13: Admin regenerates invite link → toast warns old link is invalid', async ({ page }) => {
@@ -125,10 +126,10 @@ test.describe('A11 — Group manage: admin full view', () => {
     await page.waitForTimeout(1500);
 
     const regenBtn = page.getByRole('button', { name: /Regenerate/i });
-    await expect(regenBtn).toBeVisible({ timeout: 15_000 });
+    await expect(regenBtn).toBeVisible();
     await regenBtn.click();
 
-    await expect(page.getByText(/old link is now invalid/i)).toBeVisible({ timeout: 8_000 });
+    await expect(page.getByText(/old link is now invalid/i)).toBeVisible();
   });
 
   test('A11-14: Admin can "Make Admin" for a member', async ({ page }) => {
@@ -138,19 +139,19 @@ test.describe('A11 — Group manage: admin full view', () => {
     await page.waitForTimeout(1500);
 
     // Find a non-admin member and promote (Raghu is a member)
-    await expect(page.getByText('Raghu')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText('Raghu')).toBeVisible();
 
     const makeAdminBtn = page.getByRole('button', { name: /Make Admin/i }).first();
     if (await makeAdminBtn.isVisible()) {
       await makeAdminBtn.click();
-      await expect(page.getByText(/now an admin/i)).toBeVisible({ timeout: 8_000 });
+      await expect(page.getByText(/now an admin/i)).toBeVisible();
 
       // Restore — demote back
       const removeAdminBtn = page.getByRole('button', { name: /Remove Admin/i }).filter({ hasText: /Raghu/ }).first()
         .or(page.getByRole('button', { name: /Remove Admin/i }).first());
       if (await removeAdminBtn.isVisible()) {
         await removeAdminBtn.click();
-        await expect(page.getByText(/now a member/i)).toBeVisible({ timeout: 8_000 });
+        await expect(page.getByText(/now a member/i)).toBeVisible();
       }
     }
   });
@@ -161,7 +162,7 @@ test.describe('A11 — Group manage: admin full view', () => {
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(1500);
 
-    await expect(page.getByText(/Danger Zone/i)).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(/Danger Zone/i)).toBeVisible();
     await expect(page.getByRole('button', { name: /Delete Group/i })).toBeVisible();
   });
 
@@ -174,7 +175,7 @@ test.describe('A11 — Group manage: admin full view', () => {
     await page.getByRole('button', { name: /Delete Group/i }).click();
 
     // Modal should open
-    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByRole('dialog')).toBeVisible();
 
     // Type wrong name — button should be disabled
     const confirmInput = page.getByRole('dialog').getByRole('textbox');
@@ -192,7 +193,7 @@ test.describe('A11 — Group manage: admin full view', () => {
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(1500);
 
-    await expect(page.getByText('Raghu')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText('Raghu')).toBeVisible();
 
     // Member rows should have a pencil/edit button
     const pencilBtns = page.getByRole('button', { name: /edit|pencil/i });
@@ -207,7 +208,7 @@ test.describe('A11 — Group manage: admin full view', () => {
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(1500);
 
-    await expect(page.getByText('Raghu')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText('Raghu')).toBeVisible();
 
     // Click edit on the member row (second pencil button, after group name edit)
     const memberEditBtns = page.getByRole('button', { name: /edit|pencil/i });
@@ -219,7 +220,7 @@ test.describe('A11 — Group manage: admin full view', () => {
       await memberInput.clear();
       await memberInput.fill('X');
       await page.getByRole('button', { name: /Save|✓|save/i }).last().click();
-      await expect(page.getByText(/at least 2 characters/i)).toBeVisible({ timeout: 8_000 });
+      await expect(page.getByText(/at least 2 characters/i)).toBeVisible();
     }
   });
 
@@ -229,16 +230,16 @@ test.describe('A11 — Group manage: admin full view', () => {
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(1500);
 
-    await expect(page.getByText('Raghu')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText('Raghu')).toBeVisible();
 
     const removeBtn = page.getByRole('button', { name: /^Remove$/i }).first();
     if (await removeBtn.isVisible()) {
       await removeBtn.click();
       // Confirmation modal
-      await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5_000 });
+      await expect(page.getByRole('dialog')).toBeVisible();
       await page.getByRole('button', { name: /Cancel/i }).click();
       // Member should still be visible
-      await expect(page.getByText('Raghu')).toBeVisible({ timeout: 5_000 });
+      await expect(page.getByText('Raghu')).toBeVisible();
     }
   });
 

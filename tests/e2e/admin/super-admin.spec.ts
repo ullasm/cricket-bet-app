@@ -63,7 +63,7 @@ test.describe('A14 — Admin page: superAdmin view', () => {
     expect(page.url()).toContain('/admin');
 
     // Match Sync section
-    await expect(page.getByRole('button', { name: /Sync Live Matches/i })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole('button', { name: /Sync Live Matches/i })).toBeVisible();
   });
 
   test('A14-04: "Sync Live Matches" button is clickable', async ({ page }) => {
@@ -72,7 +72,7 @@ test.describe('A14 — Admin page: superAdmin view', () => {
     await page.waitForTimeout(1500);
 
     const syncBtn = page.getByRole('button', { name: /Sync Live Matches/i });
-    await expect(syncBtn).toBeVisible({ timeout: 10_000 });
+    await expect(syncBtn).toBeVisible();
     await expect(syncBtn).toBeEnabled();
   });
 
@@ -84,7 +84,7 @@ test.describe('A14 — Admin page: superAdmin view', () => {
     // Series form should have name and ID fields
     await expect(page.getByPlaceholder(/series name/i).or(
       page.getByLabel(/name/i).first()
-    )).toBeVisible({ timeout: 10_000 });
+    )).toBeVisible();
   });
 
   test('A14-11: "Admin" link visible in navbar dropdown only for superAdmin users', async ({ page }) => {
@@ -101,7 +101,7 @@ test.describe('A14 — Admin page: superAdmin view', () => {
     );
     if (await avatarBtn.isVisible()) {
       await avatarBtn.click();
-      await expect(page.getByRole('link', { name: /Admin/i })).toBeVisible({ timeout: 5_000 });
+      await expect(page.getByRole('link', { name: /Admin/i })).toBeVisible();
     }
   });
 

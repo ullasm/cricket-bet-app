@@ -41,8 +41,8 @@ test.describe('B-02: Create match → member bets → declare result → check p
 
     // Step 1: Admin creates a match
     matchId = await createTestMatch(groupId, {
-      teamA: 'India',
-      teamB: 'Australia',
+      teamA: 'Kenya',
+      teamB: 'Canada',
       bettingOpen: true,
       status: 'upcoming',
       drawAllowed: false,
@@ -57,14 +57,15 @@ test.describe('B-02: Create match → member bets → declare result → check p
     await pageMember.waitForLoadState('domcontentloaded');
     await pageMember.waitForTimeout(1500);
 
-    const b02MatchCard = pageMember.locator('div').filter({ hasText: /India.*Australia|Australia.*India/ }).filter({ has: pageMember.getByRole('button', { name: /Place Bet/i }) }).last();
+    const b02MatchCard = pageMember.locator('div').filter({ hasText: /Kenya.*Canada|Canada.*Kenya/ }).filter({ has: pageMember.getByRole('button', { name: /Place Bet/i }) }).last();
     await b02MatchCard.getByRole('button', { name: /Place Bet/i }).first().click();
-    await b02MatchCard.getByRole('button', { name: 'India' }).first().click();
+    await pageMember.waitForTimeout(500);
+    await pageMember.locator('button', { hasText: /^Kenya$/ }).first().click();
     await pageMember.getByPlaceholder('Custom amount').fill('1000');
     await pageMember.getByRole('button', { name: /Confirm Bet/i }).click();
-    await expect(pageMember.getByText(/placed successfully/i)).toBeVisible({ timeout: 15_000 });
+    await expect(pageMember.getByText(/placed successfully/i)).toBeVisible();
 
-    // Step 3: Admin closes betting and declares India wins
+    // Step 3: Admin closes betting and declares Kenya wins
     const ctxAdmin = await browser.newContext();
     const pageAdmin = await ctxAdmin.newPage();
     await loginAsRole(pageAdmin, 'friends_admin_ullas');
@@ -72,26 +73,26 @@ test.describe('B-02: Create match → member bets → declare result → check p
     await pageAdmin.goto(`/groups/${groupId}/matches`);
     await pageAdmin.waitForLoadState('domcontentloaded');
     await pageAdmin.waitForTimeout(1500);
-    await expect(pageAdmin.getByText('India vs Australia')).toBeVisible({ timeout: 15_000 });
+    await expect(pageAdmin.getByText('Kenya vs Canada').first()).toBeVisible();
 
-    // Close betting
-    await pageAdmin.getByRole('button', { name: /Close Betting/i }).first().click();
-    await expect(pageAdmin.getByText(/Betting closed/i)).toBeVisible({ timeout: 8_000 });
+    const b02AdminCard = pageAdmin.locator('div').filter({ hasText: /Kenya.*Canada|Canada.*Kenya/ }).first();
+    await b02AdminCard.getByRole('button', { name: /Close Betting/i }).first().click();
+    await expect(pageAdmin.getByText(/Betting closed/i)).toBeVisible();
 
     // Declare result
-    const resultSelect = pageAdmin.locator('select').filter({ hasText: /Result|pending/ }).first()
-      .or(pageAdmin.locator('select[value="pending"]').first());
+    const resultSelect = b02AdminCard.locator('select').filter({ hasText: /Result|pending/ }).first()
+      .or(b02AdminCard.locator('select[value="pending"]').first());
     if (await resultSelect.isVisible()) {
-      await resultSelect.selectOption('team_a'); // India wins
-      await pageAdmin.getByRole('button', { name: /Confirm/i }).first().click();
-      await expect(pageAdmin.getByText(/settled/i)).toBeVisible({ timeout: 15_000 });
+      await resultSelect.selectOption('team_a'); // Kenya wins
+      await b02AdminCard.getByRole('button', { name: /Confirm/i }).first().click();
+      await expect(pageAdmin.getByText(/settled/i)).toBeVisible();
     }
 
     // Step 4: Member checks points page — standings updated
     await pageMember.goto(`/groups/${groupId}/points`);
     await pageMember.waitForLoadState('domcontentloaded');
     await pageMember.waitForTimeout(1500);
-    await expect(pageMember.getByRole('list').getByText('Raghu')).toBeVisible({ timeout: 15_000 });
+    await expect(pageMember.getByRole('list').getByText('Raghu')).toBeVisible();
 
     await ctxMember.close();
     await ctxAdmin.close();
@@ -114,13 +115,13 @@ test.describe('B-03: Admin promotes member → promoted user accesses matches', 
     await pageAdmin.goto(`/groups/${groupId}/group`);
     await pageAdmin.waitForLoadState('domcontentloaded');
     await pageAdmin.waitForTimeout(1500);
-    await expect(pageAdmin.getByText('Raghu')).toBeVisible({ timeout: 15_000 });
+    await expect(pageAdmin.getByText('Raghu')).toBeVisible();
 
     const raghuRow = pageAdmin.locator('li').filter({ hasText: 'Raghu' }).first();
     const makeAdminBtn = raghuRow.getByRole('button', { name: /Make Admin/i });
     if (await makeAdminBtn.isVisible()) {
       await makeAdminBtn.click();
-      await expect(pageAdmin.getByText(/now an admin/i)).toBeVisible({ timeout: 8_000 });
+      await expect(pageAdmin.getByText(/now an admin/i)).toBeVisible();
       await pageAdmin.waitForTimeout(2000); // allow Firestore write to propagate
 
       // Raghu opens their dashboard — should see Matches tab
@@ -135,7 +136,7 @@ test.describe('B-03: Admin promotes member → promoted user accesses matches', 
       await pageRaghu.reload();
       await pageRaghu.waitForLoadState('domcontentloaded');
       await pageRaghu.waitForTimeout(2000);
-      await expect(pageRaghu.getByRole('link', { name: 'Matches' })).toBeVisible({ timeout: 20_000 });
+      await expect(pageRaghu.getByRole('link', { name: 'Matches' })).toBeVisible();
 
       // Restore — demote Raghu back to member
       await pageAdmin.reload();
@@ -145,7 +146,7 @@ test.describe('B-03: Admin promotes member → promoted user accesses matches', 
       const removeAdminBtn = raghuRowRestore.getByRole('button', { name: /Remove Admin/i });
       if (await removeAdminBtn.isVisible()) {
         await removeAdminBtn.click();
-        await expect(pageAdmin.getByText(/now a member/i)).toBeVisible({ timeout: 8_000 });
+        await expect(pageAdmin.getByText(/now a member/i)).toBeVisible();
       }
 
       await ctxRaghu.close();
@@ -174,7 +175,7 @@ test.describe('B-04: Invite regeneration → old link invalid → new link valid
     await pageAdmin.waitForTimeout(1500);
 
     await pageAdmin.getByRole('button', { name: /Regenerate/i }).click();
-    await expect(pageAdmin.getByText(/old link is now invalid/i)).toBeVisible({ timeout: 8_000 });
+    await expect(pageAdmin.getByText(/old link is now invalid/i)).toBeVisible();
 
     // Fetch new code
     const newCode = await getInviteCode(groupId);
@@ -187,7 +188,7 @@ test.describe('B-04: Invite regeneration → old link invalid → new link valid
     await pageGuest.goto(`/join/${oldCode}`);
     await pageGuest.waitForLoadState('domcontentloaded');
     await pageGuest.waitForTimeout(1500);
-    await expect(pageGuest.getByText(/invalid invite link/i)).toBeVisible({ timeout: 15_000 });
+    await expect(pageGuest.getByText(/invalid invite link/i)).toBeVisible();
 
     await ctxAdmin.close();
     await ctxGuest.close();
@@ -208,8 +209,8 @@ test.describe('B-07: Abandoned match → bet status=refunded', () => {
   test('B-07: Admin declares match abandoned → member bet shows "Refunded" badge', async ({ browser }) => {
     const groupId = getGroupId('friends');
     matchId = await createTestMatch(groupId, {
-      teamA: 'India',
-      teamB: 'England',
+      teamA: 'Namibia',
+      teamB: 'UAE',
       bettingOpen: true,
       status: 'upcoming',
       drawAllowed: false,
@@ -224,12 +225,13 @@ test.describe('B-07: Abandoned match → bet status=refunded', () => {
     await pageMember.goto(`/groups/${groupId}`);
     await pageMember.waitForLoadState('domcontentloaded');
     await pageMember.waitForTimeout(1500);
-    const b07MatchCard = pageMember.locator('div').filter({ hasText: /India.*England|England.*India/ }).filter({ has: pageMember.getByRole('button', { name: /Place Bet/i }) }).last();
+    const b07MatchCard = pageMember.locator('div').filter({ hasText: /Namibia.*UAE|UAE.*Namibia/ }).filter({ has: pageMember.getByRole('button', { name: /Place Bet/i }) }).last();
     await b07MatchCard.getByRole('button', { name: /Place Bet/i }).first().click();
-    await b07MatchCard.getByRole('button', { name: 'India' }).first().click();
+    await pageMember.waitForTimeout(500);
+    await pageMember.locator('button', { hasText: /^Namibia$/ }).first().click();
     await pageMember.getByPlaceholder('Custom amount').fill('500');
     await pageMember.getByRole('button', { name: /Confirm Bet/i }).click();
-    await expect(pageMember.getByText(/placed successfully/i)).toBeVisible({ timeout: 15_000 });
+    await expect(pageMember.getByText(/placed successfully/i)).toBeVisible();
 
     // Admin declares abandoned
     const ctxAdmin = await browser.newContext();
@@ -239,17 +241,18 @@ test.describe('B-07: Abandoned match → bet status=refunded', () => {
     await pageAdmin.goto(`/groups/${groupId}/matches`);
     await pageAdmin.waitForLoadState('domcontentloaded');
     await pageAdmin.waitForTimeout(1500);
-    await expect(pageAdmin.getByText('India vs England')).toBeVisible({ timeout: 15_000 });
+    await expect(pageAdmin.getByText('Namibia vs UAE').first()).toBeVisible();
 
-    await pageAdmin.getByRole('button', { name: /Close Betting/i }).first().click();
-    await expect(pageAdmin.getByText(/Betting closed/i)).toBeVisible({ timeout: 8_000 });
+    const b07AdminCard = pageAdmin.locator('div').filter({ hasText: /Namibia.*UAE|UAE.*Namibia/ }).first();
+    await b07AdminCard.getByRole('button', { name: /Close Betting/i }).first().click();
+    await expect(pageAdmin.getByText(/Betting closed/i)).toBeVisible();
 
-    const resultSelect = pageAdmin.locator('select').filter({ hasText: /Result|pending/i }).first()
-      .or(pageAdmin.locator('select[name="result"], select#result').first());
+    const resultSelect = b07AdminCard.locator('select').filter({ hasText: /Result|pending/i }).first()
+      .or(b07AdminCard.locator('select[name="result"], select#result').first());
     if (await resultSelect.isVisible()) {
       await resultSelect.selectOption('abandoned');
-      await pageAdmin.getByRole('button', { name: /Confirm/i }).first().click();
-      await expect(pageAdmin.getByText(/settled/i)).toBeVisible({ timeout: 15_000 });
+      await b07AdminCard.getByRole('button', { name: /Confirm/i }).first().click();
+      await expect(pageAdmin.getByText(/settled/i)).toBeVisible();
     }
 
     // Member refreshes — bet should show Refunded status
@@ -258,7 +261,7 @@ test.describe('B-07: Abandoned match → bet status=refunded', () => {
     await pageMember.waitForTimeout(1500);
     await expect(
       pageMember.getByText(/refunded/i).first()
-    ).toBeVisible({ timeout: 15_000 });
+    ).toBeVisible();
 
     await ctxMember.close();
     await ctxAdmin.close();

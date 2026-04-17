@@ -20,7 +20,7 @@ test.describe('A5 — Groups list (/groups)', () => {
     // If the env flag is true the button should be visible
     const createBtn = page.getByRole('link', { name: /Create Group/i });
     // The feature flag is set to 'true' in the project; assert it is visible
-    await expect(createBtn).toBeVisible({ timeout: 15_000 });
+    await expect(createBtn).toBeVisible();
   });
 
   test('A5-05: Groups listed as cards with group name and "Enter Group" button', async ({ page }) => {
@@ -28,7 +28,7 @@ test.describe('A5 — Groups list (/groups)', () => {
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(1500);
     // Ullas belongs to at least GroupA
-    await expect(page.getByText('GroupA', { exact: true })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText('GroupA', { exact: true })).toBeVisible();
     await expect(page.getByRole('link', { name: /Enter Group/i }).first()).toBeVisible();
   });
 
@@ -58,7 +58,7 @@ test.describe('A4 — Profile: My Groups section', () => {
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(1500);
     // Display name should be visible
-    await expect(page.getByText('Ullas', { exact: true })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText('Ullas', { exact: true })).toBeVisible();
     // Points text
     await expect(page.getByText(/pts total/i)).toBeVisible();
   });
@@ -69,7 +69,7 @@ test.describe('A4 — Profile: My Groups section', () => {
     await page.waitForTimeout(1500);
     // Each swatch has aria-label containing "avatar colour"
     const swatches = page.getByRole('button', { name: /avatar colour/i });
-    await expect(swatches.first()).toBeVisible({ timeout: 15_000 });
+    await expect(swatches.first()).toBeVisible();
     const count = await swatches.count();
     expect(count).toBe(7); // 7 colours
   });
@@ -82,7 +82,7 @@ test.describe('A4 — Profile: My Groups section', () => {
     await nameInput.clear();
     await nameInput.fill('X');
     await page.getByRole('button', { name: /Save Changes/i }).click();
-    await expect(page.getByText(/at least 2 characters/i)).toBeVisible({ timeout: 8_000 });
+    await expect(page.getByText(/at least 2 characters/i)).toBeVisible();
   });
 
   test('A4-05: Save profile with no changes → "Nothing to update" info toast', async ({ page }) => {
@@ -99,7 +99,7 @@ test.describe('A4 — Profile: My Groups section', () => {
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(1500);
     // Should see "My Groups" section heading
-    await expect(page.getByText('My Groups')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText('My Groups')).toBeVisible();
     // Ullas belongs to GroupA and FamilyGroupA
     await expect(page.getByText('GroupA', { exact: true })).toBeVisible();
   });
@@ -119,7 +119,7 @@ test.describe('A4 — Profile: My Groups section', () => {
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(1500);
     // Ullas created GroupA, so a "Creator" badge should be visible
-    await expect(page.getByText('Creator').first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText('Creator').first()).toBeVisible();
   });
 
 });

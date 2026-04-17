@@ -25,7 +25,7 @@ test.describe('Draw option gating', () => {
   test('E-03a: Match with drawAllowed=false → 2-outcome picker (no Draw button)', async ({ page }) => {
     const groupId = getGroupId('friends');
     matchId = await createTestMatch(groupId, {
-      teamA: 'India',
+      teamA: 'Bangladesh',
       teamB: 'Pakistan',
       drawAllowed: false,
       bettingOpen: true,
@@ -36,18 +36,20 @@ test.describe('Draw option gating', () => {
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(1500);
 
-    await page.getByRole('button', { name: /Place Bet/i }).first().click();
+    const matchCard = page.locator('div').filter({ hasText: /Bangladesh.*Pakistan|Pakistan.*Bangladesh/ }).first();
+    await matchCard.getByRole('button', { name: /Place Bet/i }).first().click();
+    await page.waitForTimeout(1500);
 
-    await expect(page.getByRole('button', { name: 'India' }).first()).toBeVisible({ timeout: 8_000 });
-    await expect(page.getByRole('button', { name: 'Pakistan' }).first()).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Draw' })).not.toBeVisible();
+    await expect(matchCard.locator('button', { hasText: /^Bangladesh$/ }).first()).toBeVisible();
+    await expect(matchCard.locator('button', { hasText: /^Pakistan$/ }).first()).toBeVisible();
+    await expect(matchCard.locator('button', { hasText: /^Draw$/ })).not.toBeVisible();
   });
 
   test('E-03b: Match with drawAllowed=true → 3-outcome picker (Draw button visible)', async ({ page }) => {
     const groupId = getGroupId('friends');
     matchId = await createTestMatch(groupId, {
       teamA: 'England',
-      teamB: 'Australia',
+      teamB: 'New Zealand',
       drawAllowed: true,
       bettingOpen: true,
       status: 'upcoming',
@@ -57,12 +59,13 @@ test.describe('Draw option gating', () => {
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(1500);
 
-    const matchCard = page.locator('div').filter({ hasText: /England.*Australia|Australia.*England/ }).filter({ has: page.getByRole('button', { name: /Place Bet/i }) }).first();
-    await matchCard.getByRole('button', { name: /Place Bet/i }).click();
+    const matchCard = page.locator('div').filter({ hasText: /England.*New Zealand|New Zealand.*England/ }).first();
+    await matchCard.getByRole('button', { name: /Place Bet/i }).first().click();
+    await page.waitForTimeout(1500);
 
-    await expect(page.getByRole('button', { name: 'England' }).first()).toBeVisible({ timeout: 8_000 });
-    await expect(page.getByRole('button', { name: 'Australia' }).first()).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Draw' })).toBeVisible();
+    await expect(matchCard.locator('button', { hasText: /^England$/ }).first()).toBeVisible();
+    await expect(matchCard.locator('button', { hasText: /^New Zealand$/ }).first()).toBeVisible();
+    await expect(matchCard.locator('button', { hasText: /^Draw$/ })).toBeVisible();
   });
 
 });
@@ -79,7 +82,7 @@ test.describe('E-04 — Test format auto-enables draw checkbox', () => {
     await page.waitForTimeout(1500);
 
     // Verify the page is accessible (admin view)
-    await expect(page.getByText(/access denied/i)).not.toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText(/access denied/i)).not.toBeVisible();
 
     // Select Test format in Create Match form
     const formatSelect = page.getByLabel('Format').or(page.locator('select[id="format"]'));

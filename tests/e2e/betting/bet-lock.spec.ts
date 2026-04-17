@@ -34,13 +34,16 @@ test.describe('E-02 / A7-05 — Betting locked when bettingOpen=false', () => {
       status: 'upcoming',
     });
 
+    // Reload to ensure fresh data from Firestore
     await page.goto(dashUrl(groupId));
     await page.waitForLoadState('domcontentloaded');
-    await page.waitForTimeout(1500);
+    await page.waitForTimeout(2000);
 
+    // Scope to the specific match card to avoid collisions with parallel tests
+    const matchCard = page.locator('div').filter({ hasText: /India.*Sri Lanka|Sri Lanka.*India/ }).first();
     // The match should show in upcoming section but without a Place Bet button
-    await expect(page.getByText('India')).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByRole('button', { name: /Place Bet/i })).not.toBeVisible({ timeout: 5_000 });
+    await expect(matchCard.getByText(/India.*Sri Lanka/)).toBeVisible();
+    await expect(matchCard.getByRole('button', { name: /Place Bet/i })).not.toBeVisible();
   });
 
   test('E-02b: Betting locked match — existing bet is read-only, Change Bet hidden', async ({ page }) => {
@@ -62,10 +65,11 @@ test.describe('E-02 / A7-05 — Betting locked when bettingOpen=false', () => {
     // Scope to the specific match card to avoid collisions with parallel tests
     const matchCard = page.locator('div').filter({ hasText: /India.*New Zealand|New Zealand.*India/ }).filter({ has: page.getByRole('button', { name: /Place Bet/i }) }).last();
     await matchCard.getByRole('button', { name: /Place Bet/i }).first().click();
-    await matchCard.getByRole('button', { name: 'India' }).first().click();
+    await page.waitForTimeout(500);
+    await matchCard.locator('button', { hasText: /^India$/ }).first().click();
     await page.getByPlaceholder('Custom amount').fill('200');
     await page.getByRole('button', { name: /Confirm Bet/i }).click();
-    await expect(page.getByText(/placed successfully/i)).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(/placed successfully/i)).toBeVisible();
 
     // Close betting via Admin SDK
     await admin.firestore().collection('matches').doc(matchId).update({
@@ -79,8 +83,8 @@ test.describe('E-02 / A7-05 — Betting locked when bettingOpen=false', () => {
     await page.waitForTimeout(1500);
 
     // Change Bet and Remove Bet should no longer appear
-    await expect(page.getByRole('button', { name: /Change Bet/i })).not.toBeVisible({ timeout: 8_000 });
-    await expect(page.getByRole('button', { name: /Remove Bet/i })).not.toBeVisible({ timeout: 5_000 });
+    await expect(page.getByRole('button', { name: /Change Bet/i })).not.toBeVisible();
+    await expect(page.getByRole('button', { name: /Remove Bet/i })).not.toBeVisible();
   });
 
   test('A7-18: Match auto-closes betting when matchDate has passed (bettingOpen=false)', async ({ page }) => {
@@ -102,7 +106,7 @@ test.describe('E-02 / A7-05 — Betting locked when bettingOpen=false', () => {
     await page.waitForTimeout(1500);
 
     // Bet button should not be shown
-    await expect(page.getByRole('button', { name: /Place Bet/i })).not.toBeVisible({ timeout: 5_000 });
+    await expect(page.getByRole('button', { name: /Place Bet/i })).not.toBeVisible();
   });
 
 });

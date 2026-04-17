@@ -39,14 +39,13 @@ test.describe('A8-02 — Matches admin: member access denied', () => {
     const context = await browser.newContext();
     const page    = await context.newPage();
 
-    await loginAsRole(page, 'friends_member_raghu');
+    await loginAsRole(page, 'friends_member_chethan');
 
     const groupId = getGroupId('friends');
     await page.goto(matchesUrl(groupId), { waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(1500);
 
-    // Wait for loading spinner to clear, then confirm access denied
-    await expect(page.locator('[data-testid="spinner"], .animate-spin').first()).not.toBeVisible({ timeout: 15_000 }).catch(() => {/* spinner may not exist */});
-    await expect(page.getByText(/access denied/i)).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(/access denied/i)).toBeVisible();
     await expect(page.getByRole('link', { name: /Back to Group/i })).toBeVisible();
 
     await context.close();
@@ -73,7 +72,7 @@ async function gotoMatches(page: import('@playwright/test').Page, groupId: strin
   await expect(
     page.getByRole('button', { name: /^Create Match$/i })
       .or(page.getByText(/access denied/i))
-  ).toBeVisible({ timeout: 15_000 });
+  ).toBeVisible();
 }
 
 test.describe('A8 — Matches admin: admin view', () => {
@@ -99,7 +98,7 @@ test.describe('A8 — Matches admin: admin view', () => {
     await page.getByLabel('Team B').fill('Australia');
     await page.getByRole('button', { name: /^Create Match$/i }).click();
 
-    await expect(page.getByText(/please set a match date/i)).toBeVisible({ timeout: 8_000 });
+    await expect(page.getByText(/please set a match date/i)).toBeVisible();
     await context.close();
   });
 
@@ -118,7 +117,7 @@ test.describe('A8 — Matches admin: admin view', () => {
     // Team B deliberately left empty
     await page.getByRole('button', { name: /^Create Match$/i }).click();
 
-    await expect(page.getByText(/team names are required/i)).toBeVisible({ timeout: 8_000 });
+    await expect(page.getByText(/team names are required/i)).toBeVisible();
     await context.close();
   });
 
@@ -143,10 +142,10 @@ test.describe('A8 — Matches admin: admin view', () => {
     try {
       await gotoMatches(page, groupId);
 
-      await expect(page.getByRole('button', { name: /All/i }).first()).toBeVisible({ timeout: 10_000 });
+      await expect(page.getByRole('button', { name: /All/i }).first()).toBeVisible();
       await expect(page.getByRole('button', { name: /Upcoming/i })).toBeVisible();
       await page.getByRole('button', { name: /Upcoming/i }).click();
-      await expect(page.getByText(/access denied/i)).not.toBeVisible({ timeout: 5_000 });
+      await expect(page.getByText(/access denied/i)).not.toBeVisible();
     } finally {
       await deleteTestDocument('matches', matchId);
       await context.close();
@@ -165,9 +164,9 @@ test.describe('A8 — Matches admin: admin view', () => {
 
     try {
       await gotoMatches(page, groupId);
-      await expect(page.getByText('India vs Australia')).toBeVisible({ timeout: 10_000 });
+      await expect(page.getByText('India vs Australia')).toBeVisible();
       await page.getByRole('button', { name: /Edit/i }).first().click();
-      await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5_000 });
+      await expect(page.getByRole('dialog')).toBeVisible();
       await expect(page.getByRole('dialog').getByLabel('Team A')).toHaveValue('India', { timeout: 5_000 });
     } finally {
       await deleteTestDocument('matches', matchId);
@@ -187,11 +186,11 @@ test.describe('A8 — Matches admin: admin view', () => {
 
     try {
       await gotoMatches(page, groupId);
-      await expect(page.getByText('India vs Bangladesh')).toBeVisible({ timeout: 10_000 });
+      await expect(page.getByText('India vs Bangladesh')).toBeVisible();
       await page.getByRole('button', { name: /Delete/i }).first().click();
-      await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5_000 });
+      await expect(page.getByRole('dialog')).toBeVisible();
       await page.getByRole('dialog').getByRole('button', { name: /Delete/i }).click();
-      await expect(page.getByText('Match deleted')).toBeVisible({ timeout: 10_000 });
+      await expect(page.getByText('Match deleted')).toBeVisible();
       matchId = ''; // already deleted by the UI
     } finally {
       if (matchId) await deleteTestDocument('matches', matchId);
@@ -211,11 +210,11 @@ test.describe('A8 — Matches admin: admin view', () => {
 
     try {
       await gotoMatches(page, groupId);
-      await expect(page.getByText('India vs South Africa')).toBeVisible({ timeout: 10_000 });
+      await expect(page.getByText('India vs South Africa')).toBeVisible();
       await page.getByRole('button', { name: /Close Betting/i }).first().click();
-      await expect(page.getByText(/Betting closed/i)).toBeVisible({ timeout: 8_000 });
+      await expect(page.getByText(/Betting closed/i)).toBeVisible();
       await page.getByRole('button', { name: /Open Betting/i }).first().click();
-      await expect(page.getByText(/Betting opened/i)).toBeVisible({ timeout: 8_000 });
+      await expect(page.getByText(/Betting opened/i)).toBeVisible();
     } finally {
       await deleteTestDocument('matches', matchId);
       await context.close();
@@ -235,13 +234,13 @@ test.describe('A8 — Matches admin: admin view', () => {
 
     try {
       await gotoMatches(page, groupId);
-      await expect(page.getByText('India vs Zimbabwe')).toBeVisible({ timeout: 10_000 });
+      await expect(page.getByText('India vs Zimbabwe')).toBeVisible();
 
       const resultSelect = page.locator('select').filter({ hasText: /Result|pending/ }).first();
       if (await resultSelect.isVisible()) {
         await resultSelect.selectOption('team_a');
         await page.getByRole('button', { name: /Confirm/i }).first().click();
-        await expect(page.getByText(/settled/i)).toBeVisible({ timeout: 10_000 });
+        await expect(page.getByText(/settled/i)).toBeVisible();
       }
     } finally {
       await deleteTestDocument('matches', matchId);
@@ -261,12 +260,12 @@ test.describe('A8 — Matches admin: admin view', () => {
 
     try {
       await gotoMatches(page, groupId);
-      await expect(page.getByText('India vs Afghanistan')).toBeVisible({ timeout: 10_000 });
+      await expect(page.getByText('India vs Afghanistan')).toBeVisible();
       await page.getByRole('button', { name: /Manage Bets/i }).first().click();
-      await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5_000 });
+      await expect(page.getByRole('dialog')).toBeVisible();
       await expect(
         page.getByRole('dialog').getByText('Ullas').or(page.getByRole('dialog').getByText('Raghu')).first()
-      ).toBeVisible({ timeout: 8_000 });
+      ).toBeVisible();
     } finally {
       await deleteTestDocument('matches', matchId);
       await context.close();

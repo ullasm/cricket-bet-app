@@ -29,7 +29,7 @@ test.describe('A6 — Create Group page (authenticated)', () => {
     await page.goto('/groups/create');
     await page.getByLabel('Group Name').fill('AB');
     await page.getByRole('button', { name: 'Create Group' }).click();
-    await expect(page.getByText(/at least 3 characters/i)).toBeVisible({ timeout: 8_000 });
+    await expect(page.getByText(/at least 3 characters/i)).toBeVisible();
   });
 
   test('A6-03: Valid name → group created → redirects to new group dashboard', async ({ page }) => {
@@ -37,7 +37,7 @@ test.describe('A6 — Create Group page (authenticated)', () => {
     await page.getByLabel('Group Name').fill('Test Group Delete Me');
     await page.getByRole('button', { name: 'Create Group' }).click();
 
-    await expect(page.getByText('Group created!')).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText('Group created!')).toBeVisible();
 
     // Should redirect to the new group dashboard
     await page.waitForURL('**/groups/**', { timeout: 15_000 });
@@ -68,7 +68,7 @@ test.describe('A6 — Create Group page (authenticated)', () => {
     await page.waitForURL('**/groups/**', { timeout: 15_000 });
 
     // Admin should see the Matches tab
-    await expect(page.getByRole('link', { name: 'Matches' })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole('link', { name: 'Matches' })).toBeVisible();
 
     // Clean up
     const url = page.url();

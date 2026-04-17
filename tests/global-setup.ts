@@ -18,6 +18,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import * as admin from 'firebase-admin';
 import { parseEnvTest } from './utils/parseEnvTest';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -123,10 +124,48 @@ function cleanArtifacts(): void {
   console.log('  Previous run artifacts cleared (test-results, playwright-report)\n');
 }
 
+// ── Reset group member roles to .env.test baseline ───────────────────────────
+
+async function resetGroupMemberRoles(): Promise<void> {
+  const keyPath     = path.resolve(process.cwd(), 'serviceAccountKey.json');
+  const sessionPath = path.resolve(process.cwd(), 'tests', 'test-session-uids.json');
+  if (!fs.existsSync(keyPath) || !fs.existsSync(sessionPath)) return;
+
+  if (!admin.apps.length) {
+    admin.initializeApp({ credential: admin.credential.cert(JSON.parse(fs.readFileSync(keyPath, 'utf-8'))) });
+  }
+
+  const session = JSON.parse(fs.readFileSync(sessionPath, 'utf-8')) as {
+    uids: Record<string, string>;
+    groupIds: Record<string, string>;
+  };
+  const config = parseEnvTest();
+  const db     = admin.firestore();
+  const updates: Promise<unknown>[] = [];
+
+  for (const group of config.groups) {
+    const groupId = session.groupIds[group.key];
+    if (!groupId) continue;
+
+    for (const user of group.admins) {
+      const uid = session.uids[`${group.key}_admin_${user.alias}`];
+      if (uid) updates.push(db.collection('groups').doc(groupId).collection('members').doc(uid).update({ role: 'admin' }));
+    }
+    for (const user of group.members) {
+      const uid = session.uids[`${group.key}_member_${user.alias}`];
+      if (uid) updates.push(db.collection('groups').doc(groupId).collection('members').doc(uid).update({ role: 'member' }));
+    }
+  }
+
+  await Promise.all(updates);
+  console.log('  Group member roles reset to .env.test baseline\n');
+}
+
 // ── Global setup ──────────────────────────────────────────────────────────────
 
 export default async function globalSetup(): Promise<void> {
   cleanArtifacts();
+  await resetGroupMemberRoles();
 
   const config  = parseEnvTest();
   const apiKey  = readFirebaseApiKey();

@@ -39,24 +39,29 @@ test.describe('Inline bet placement — place, change, remove', () => {
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(1500);
 
+    const matchCard = page.locator('div').filter({ hasText: /India.*England|England.*India/ }).filter({ has: page.getByRole('button', { name: /Place Bet/i }) }).last();
+
     // Open bet form
-    await page.getByRole('button', { name: /Place Bet/i }).first().click();
+    await matchCard.getByRole('button', { name: /Place Bet/i }).first().click();
+    await page.waitForTimeout(500);
 
     // Select India
-    await page.getByRole('button', { name: 'India' }).first().click();
+    await matchCard.locator('button', { hasText: /^India$/ }).first().click();
 
     // Set stake
     const stakeInput = page.getByPlaceholder('Custom amount');
+    await expect(stakeInput).toBeVisible();
     await stakeInput.clear();
     await stakeInput.fill('500');
 
     // Confirm
     await page.getByRole('button', { name: /Confirm Bet/i }).click();
 
-    await expect(page.getByText(/placed successfully/i)).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(/placed successfully/i)).toBeVisible();
 
     // Bet placed — "Change Bet" should appear
-    await expect(page.getByRole('button', { name: /Change Bet/i }).first()).toBeVisible({ timeout: 8_000 });
+    const matchCardAfterBet = page.locator('div').filter({ hasText: /India.*England|England.*India/ }).filter({ has: page.getByRole('button', { name: /Change Bet/i }) }).last();
+    await expect(matchCardAfterBet.getByRole('button', { name: /Change Bet/i }).first()).toBeVisible();
   });
 
   test('A7-10: "Change Bet" opens inline form pre-filled with current outcome/stake', async ({ page }) => {
@@ -65,20 +70,25 @@ test.describe('Inline bet placement — place, change, remove', () => {
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(1500);
 
+    const matchCard = page.locator('div').filter({ hasText: /India.*England|England.*India/ }).filter({ has: page.getByRole('button', { name: /Place Bet/i }) }).last();
+    const matchCardAfterBet = page.locator('div').filter({ hasText: /India.*England|England.*India/ }).filter({ has: page.getByRole('button', { name: /Change Bet/i }) }).last();
+
     // Place a bet first
-    await page.getByRole('button', { name: /Place Bet/i }).first().click();
-    await page.getByRole('button', { name: 'India' }).first().click();
+    await matchCard.getByRole('button', { name: /Place Bet/i }).first().click();
+    await page.waitForTimeout(500);
+    await matchCard.locator('button', { hasText: /^India$/ }).first().click();
     const stakeInput = page.getByPlaceholder('Custom amount');
     await stakeInput.fill('750');
     await page.getByRole('button', { name: /Confirm Bet/i }).click();
-    await expect(page.getByText(/placed successfully/i)).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(/placed successfully/i)).toBeVisible();
 
     // Click Change Bet
-    await page.getByRole('button', { name: /Change Bet/i }).first().click();
+    await matchCardAfterBet.getByRole('button', { name: /Change Bet/i }).first().click();
+    await page.waitForTimeout(500);
 
     // The form should open with the stake input visible and India outcome accessible
-    await expect(page.getByPlaceholder('Custom amount')).toBeVisible({ timeout: 5_000 });
-    await expect(page.getByRole('button', { name: 'India' }).first()).toBeVisible();
+    await expect(page.getByPlaceholder('Custom amount')).toBeVisible();
+    await expect(matchCard.locator('button', { hasText: /India/ }).first()).toBeVisible();
   });
 
 });

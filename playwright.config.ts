@@ -13,6 +13,9 @@ export default defineConfig({
   /* Maximum time one test can run */
   timeout: 60_000,
 
+  /* Default timeout for all expect() assertions */
+  expect: { timeout: 10_000 },
+
   /* Retry once on CI, never locally */
   retries: process.env.CI ? 1 : 0,
 

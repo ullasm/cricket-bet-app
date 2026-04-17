@@ -41,7 +41,7 @@ export default function RootLayout({
         </Script>
         <ThemeProvider>
           <AuthProvider>{children}</AuthProvider>
-          <Toaster />
+          <Toaster toastOptions={{ duration: 5000 }} />
         </ThemeProvider>
       </body>
     </html>

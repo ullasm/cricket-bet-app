@@ -12,13 +12,13 @@ import { loginAsRole } from '../../utils/authUtils';
 // ── C-01: Member → /matches access denied ────────────────────────────────────
 
 test.describe('C-01: Member navigates to /matches → access denied', () => {
-  test.beforeEach(async ({ page }) => { await loginAsRole(page, 'friends_member_raghu'); });
+  test.beforeEach(async ({ page }) => { await loginAsRole(page, 'friends_member_kutti'); });
 
   test('C-01: Member → /groups/[groupId]/matches → "Access denied" card', async ({ page }) => {
     const groupId = getGroupId('friends');
     await page.goto(`/groups/${groupId}/matches`);
     await page.waitForLoadState('domcontentloaded');
-    await expect(page.getByText(/access denied/i)).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(/access denied/i)).toBeVisible();
     await expect(page.getByRole('link', { name: /Back to Group/i })).toBeVisible();
   });
 
@@ -34,14 +34,14 @@ test.describe('C-02: Non-member → any group sub-route → access denied', () =
     const groupId = getGroupId('friends');
     await page.goto(`/groups/${groupId}`);
     await page.waitForLoadState('domcontentloaded');
-    await expect(page.getByText(/access denied/i)).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(/access denied/i)).toBeVisible();
   });
 
   test('C-02b: Non-member → /groups/[groupId]/points → access denied', async ({ page }) => {
     const groupId = getGroupId('friends');
     await page.goto(`/groups/${groupId}/points`);
     await page.waitForLoadState('domcontentloaded');
-    await expect(page.getByText(/access denied/i)).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(/access denied/i)).toBeVisible();
   });
 
   test('C-11: SuperAdmin who is NOT a group member → group manage page shows no admin controls', async ({ page }) => {
@@ -50,7 +50,7 @@ test.describe('C-02: Non-member → any group sub-route → access denied', () =
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(1500);
     // SuperAdmin is not a group member so isAdmin=false — read-only view, no Danger Zone
-    await expect(page.getByText(/Danger Zone/i)).not.toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(/Danger Zone/i)).not.toBeVisible();
     await expect(page.getByRole('button', { name: /Delete Group/i })).not.toBeVisible();
   });
 
@@ -77,10 +77,10 @@ test.describe('C-04: Member vs Admin — Matches tab visibility', () => {
     const groupId = getGroupId('friends');
     const context = await browser.newContext();
     const page = await context.newPage();
-    await loginAsRole(page, 'friends_member_raghu');
+    await loginAsRole(page, 'friends_member_kulli');
     await page.goto(`/groups/${groupId}`);
     await page.waitForLoadState('domcontentloaded');
-    await expect(page.getByRole('link', { name: 'Matches' })).not.toBeVisible({ timeout: 8_000 });
+    await expect(page.getByRole('link', { name: 'Matches' })).not.toBeVisible();
     await context.close();
   });
 
@@ -91,7 +91,7 @@ test.describe('C-04: Member vs Admin — Matches tab visibility', () => {
     await loginAsRole(page, 'friends_admin_ullas');
     await page.goto(`/groups/${groupId}`);
     await page.waitForLoadState('domcontentloaded');
-    await expect(page.getByRole('link', { name: 'Matches' })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole('link', { name: 'Matches' })).toBeVisible();
     await context.close();
   });
 
@@ -107,7 +107,7 @@ test.describe('C-05: Navbar "Admin" link visibility by role', () => {
     await page.goto('/groups');
     await page.waitForLoadState('domcontentloaded');
     // The Admin link is in the user dropdown — open it
-    await expect(page.getByRole('link', { name: /^Admin$/i })).not.toBeVisible({ timeout: 5_000 });
+    await expect(page.getByRole('link', { name: /^Admin$/i })).not.toBeVisible();
   });
 
 });
@@ -115,17 +115,17 @@ test.describe('C-05: Navbar "Admin" link visibility by role', () => {
 // ── C-06: Member on Group page — no edit controls ────────────────────────────
 
 test.describe('C-06: Member on Group page — no admin controls', () => {
-  test.beforeEach(async ({ page }) => { await loginAsRole(page, 'friends_member_raghu'); });
+  test.beforeEach(async ({ page }) => { await loginAsRole(page, 'friends_member_kutti'); });
 
   test('C-06: Member sees no pencil icon, no Regenerate Link, no member actions, no Danger Zone', async ({ page }) => {
     const groupId = getGroupId('friends');
     await page.goto(`/groups/${groupId}/group`);
     await page.waitForLoadState('domcontentloaded');
 
-    await expect(page.getByRole('button', { name: /Regenerate/i })).not.toBeVisible({ timeout: 5_000 });
-    await expect(page.getByText(/Danger Zone/i)).not.toBeVisible({ timeout: 5_000 });
-    await expect(page.getByRole('button', { name: /Delete Group/i })).not.toBeVisible({ timeout: 5_000 });
-    await expect(page.getByRole('button', { name: /Make Admin/i })).not.toBeVisible({ timeout: 5_000 });
+    await expect(page.getByRole('button', { name: /Regenerate/i })).not.toBeVisible();
+    await expect(page.getByText(/Danger Zone/i)).not.toBeVisible();
+    await expect(page.getByRole('button', { name: /Delete Group/i })).not.toBeVisible();
+    await expect(page.getByRole('button', { name: /Make Admin/i })).not.toBeVisible();
   });
 
 });
@@ -153,7 +153,7 @@ test.describe('C-08: Member cannot place bet after bettingOpen=false', () => {
     await page.goto(`/groups/${groupId}`);
     await page.waitForLoadState('domcontentloaded');
 
-    await expect(page.getByRole('button', { name: /Place Bet/i })).not.toBeVisible({ timeout: 5_000 });
+    await expect(page.getByRole('button', { name: /Place Bet/i })).not.toBeVisible();
   });
 
 });

@@ -23,7 +23,7 @@ test.describe.skip('A3 — Register page', () => {
     await page.getByLabel('Confirm Password').fill('abc');
     await page.getByRole('button', { name: 'Create Account' }).click();
 
-    await expect(page.getByText('Password must be at least 6 characters')).toBeVisible({ timeout: 8_000 });
+    await expect(page.getByText('Password must be at least 6 characters')).toBeVisible();
   });
 
   test('A3-03: Passwords do not match → error toast "Passwords do not match"', async ({ page }) => {
@@ -34,7 +34,7 @@ test.describe.skip('A3 — Register page', () => {
     await page.getByLabel('Confirm Password').fill('differentpassword');
     await page.getByRole('button', { name: 'Create Account' }).click();
 
-    await expect(page.getByText('Passwords do not match')).toBeVisible({ timeout: 8_000 });
+    await expect(page.getByText('Passwords do not match')).toBeVisible();
   });
 
   test('A3-04: Already authenticated visit → immediately redirects to /groups', async ({ browser }) => {

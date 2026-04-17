@@ -23,7 +23,7 @@ test.describe('A2 — Login page', () => {
     await page.getByRole('button', { name: 'Sign In' }).click();
 
     // Toast should appear
-    await expect(page.getByText('Welcome back!')).toBeVisible({ timeout: 8_000 });
+    await expect(page.getByText('Welcome back!')).toBeVisible();
     // Should land on /groups
     await page.waitForURL('**/groups', { timeout: 10_000 });
     expect(page.url()).toContain('/groups');
@@ -48,7 +48,7 @@ test.describe('A2 — Login page', () => {
     // Error toast should be visible
     await expect(page.locator('[role="status"], [data-sonner-toast]').first().or(
       page.getByText(/invalid|wrong|failed|sign in/i).first()
-    )).toBeVisible({ timeout: 8_000 });
+    )).toBeVisible();
     // Should remain on login
     expect(page.url()).toContain('/login');
   });
@@ -59,7 +59,7 @@ test.describe('A2 — Login page', () => {
     await page.getByLabel('Password').fill('somepassword');
     await page.getByRole('button', { name: 'Sign In' }).click();
 
-    await expect(page.getByText(/invalid|no user|not found|failed/i).first()).toBeVisible({ timeout: 8_000 });
+    await expect(page.getByText(/invalid|no user|not found|failed/i).first()).toBeVisible();
     expect(page.url()).toContain('/login');
   });
 

@@ -35,7 +35,7 @@ test.describe('A7-02 — Group dashboard: non-member access denied', () => {
   test('A7-02: Non-member authenticated user → "Access denied" message with Back link', async ({ page }) => {
     const groupId = getGroupId('friends');
     await page.goto(dashUrl(groupId));
-    await expect(page.getByText(/access denied/i)).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(/access denied/i)).toBeVisible();
     await expect(page.getByRole('link', { name: /Back to My Groups/i })).toBeVisible();
   });
 
@@ -44,7 +44,7 @@ test.describe('A7-02 — Group dashboard: non-member access denied', () => {
 // ── Member tests ──────────────────────────────────────────────────────────────
 
 test.describe('A7 — Group dashboard: member view', () => {
-  test.beforeEach(async ({ page }) => { await loginAsRole(page, 'friends_member_raghu'); });
+  test.beforeEach(async ({ page }) => { await loginAsRole(page, 'friends_member_kulli'); });
 
   test('A7-03: Member sees live/ongoing, upcoming, and past match sections', async ({ page }) => {
     const groupId = getGroupId('friends');
@@ -52,7 +52,7 @@ test.describe('A7 — Group dashboard: member view', () => {
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(1500);
     // Page should load without access denied
-    await expect(page.getByText(/access denied/i)).not.toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText(/access denied/i)).not.toBeVisible();
   });
 
   test('A7-16: Member does NOT see "Matches" tab in group navbar', async ({ page }) => {
@@ -60,7 +60,7 @@ test.describe('A7 — Group dashboard: member view', () => {
     await page.goto(dashUrl(groupId));
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(1500);
-    await expect(page.getByRole('link', { name: 'Matches' })).not.toBeVisible({ timeout: 8_000 });
+    await expect(page.getByRole('link', { name: 'Matches' })).not.toBeVisible();
   });
 
   test('A7-12: Past matches default filter is "Betted"', async ({ page }) => {
@@ -98,7 +98,7 @@ test.describe('A7 — Group dashboard: admin view', () => {
     await page.goto(dashUrl(groupId));
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(1500);
-    await expect(page.getByRole('link', { name: 'Matches' })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole('link', { name: 'Matches' })).toBeVisible();
   });
 
   test('A7-04: No matches in group → sections show empty-state cards (no crash)', async ({ page }) => {
@@ -108,7 +108,7 @@ test.describe('A7 — Group dashboard: admin view', () => {
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(1500);
     // Should load without error
-    await expect(page.getByText(/access denied/i)).not.toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText(/access denied/i)).not.toBeVisible();
   });
 
   test('A7-05: Upcoming match with bettingOpen=true → "Place Bet" button visible', async ({ page }) => {
@@ -123,7 +123,7 @@ test.describe('A7 — Group dashboard: admin view', () => {
     await page.goto(dashUrl(groupId));
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(1500);
-    await expect(page.getByRole('button', { name: /Place Bet/i }).first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole('button', { name: /Place Bet/i }).first()).toBeVisible();
   });
 
   test('A7-07: Outcome picker shows 2 buttons (no draw) or 3 buttons (draw allowed)', async ({ page }) => {
@@ -143,11 +143,12 @@ test.describe('A7 — Group dashboard: admin view', () => {
 
     // Open the inline bet form
     await page.getByRole('button', { name: /Place Bet/i }).first().click();
+    await page.waitForTimeout(500);
 
     // Should see India and Pakistan buttons, but NOT Draw
-    await expect(page.getByRole('button', { name: 'India' }).first()).toBeVisible({ timeout: 8_000 });
-    await expect(page.getByRole('button', { name: 'Pakistan' }).first()).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Draw' })).not.toBeVisible();
+    await expect(page.locator('button', { hasText: /^India$/ }).first()).toBeVisible();
+    await expect(page.locator('button', { hasText: /^Pakistan$/ }).first()).toBeVisible();
+    await expect(page.locator('button', { hasText: /^Draw$/ })).not.toBeVisible();
   });
 
   test('A7-09: Stake input cleared → stake is 0 → Confirm Bet button disabled', async ({ page }) => {
@@ -165,8 +166,9 @@ test.describe('A7 — Group dashboard: admin view', () => {
     await page.waitForTimeout(1500);
 
     await page.getByRole('button', { name: /Place Bet/i }).first().click();
+    await page.waitForTimeout(500);
     // Select an outcome
-    await page.getByRole('button', { name: 'India' }).first().click();
+    await page.locator('button', { hasText: /^India$/ }).first().click();
 
     // Clear the stake
     const stakeInput = page.getByPlaceholder('Custom amount');
@@ -190,19 +192,22 @@ test.describe('A7 — Group dashboard: admin view', () => {
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(1500);
 
+    const matchCard = page.locator('div').filter({ hasText: /India.*Australia|Australia.*India/ }).filter({ has: page.getByRole('button', { name: /Place Bet/i }) }).last();
+
     // Place a bet first
-    await page.getByRole('button', { name: /Place Bet/i }).first().click();
-    await page.getByRole('button', { name: 'India' }).first().click();
+    await matchCard.getByRole('button', { name: /Place Bet/i }).first().click();
+    await page.waitForTimeout(500);
+    await page.locator('button', { hasText: /^India$/ }).first().click();
     const stakeInput = page.getByPlaceholder('Custom amount');
     await stakeInput.fill('500');
     await page.getByRole('button', { name: /Confirm Bet/i }).click();
-    await expect(page.getByText(/placed successfully/i)).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(/placed successfully/i)).toBeVisible();
 
     // Now remove the bet
     await page.getByRole('button', { name: /Remove Bet/i }).first().click();
 
     // Confirmation modal should appear
-    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByRole('dialog')).toBeVisible();
 
     // Cancel — bet should remain
     await page.getByRole('dialog').getByRole('button', { name: /No/i }).click();
@@ -211,7 +216,7 @@ test.describe('A7 — Group dashboard: admin view', () => {
     // Remove for real
     await page.getByRole('button', { name: /Remove Bet/i }).first().click();
     await page.getByRole('dialog').getByRole('button', { name: /Remove/i }).click();
-    await expect(page.getByText(/Bet removed/i)).toBeVisible({ timeout: 8_000 });
+    await expect(page.getByText(/Bet removed/i)).toBeVisible();
   });
 
   test('A7-08: Stake preset buttons add to current stake value', async ({ page }) => {
