@@ -66,6 +66,7 @@ export interface TestConfig {
     deleteFirestoreMatches: boolean;
     deleteFirestoreBets: boolean;
     deleteFirestoreUsers: boolean;
+    deleteOrphanedBets: boolean;
   };
 }
 
@@ -251,6 +252,7 @@ export function parseEnvTest(): TestConfig {
     deleteFirestoreMatches:  parseBool('teardown', td, 'delete_firestore_matches'),
     deleteFirestoreBets:     parseBool('teardown', td, 'delete_firestore_bets'),
     deleteFirestoreUsers:    parseBool('teardown', td, 'delete_firestore_users'),
+    deleteOrphanedBets:      td['delete_orphaned_bets'] === 'true',
   };
 
   return { baseUrl, sessionId, superAdmin, groups, teardown };

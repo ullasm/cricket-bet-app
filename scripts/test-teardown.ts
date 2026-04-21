@@ -89,6 +89,33 @@ async function deleteGroup(db: admin.firestore.Firestore, groupId: string, name:
   console.log(`  ✓ Deleted group "${name}" (${groupId})`);
 }
 
+/** Deletes bets whose matchId no longer exists in the matches collection. */
+async function deleteOrphanedBets(db: admin.firestore.Firestore): Promise<void> {
+  console.log('\n── Orphaned bets ────────────────────────────────────────────');
+
+  const matchSnap = await db.collection('matches').get();
+  const matchIds = new Set(matchSnap.docs.map(d => d.id));
+
+  const betSnap = await db.collection('bets').get();
+  const orphaned = betSnap.docs.filter(d => {
+    const matchId = d.data().matchId as string | undefined;
+    return matchId && !matchIds.has(matchId);
+  });
+
+  if (orphaned.length === 0) {
+    console.log('  - No orphaned bets found');
+    return;
+  }
+
+  const BATCH_SIZE = 400;
+  for (let i = 0; i < orphaned.length; i += BATCH_SIZE) {
+    const batch = db.batch();
+    for (const doc of orphaned.slice(i, i + BATCH_SIZE)) batch.delete(doc.ref);
+    await batch.commit();
+  }
+  console.log(`  ✓ Deleted ${orphaned.length} orphaned bet(s)`);
+}
+
 // ── Teardown steps ────────────────────────────────────────────────────────────
 
 async function deleteMatches(db: admin.firestore.Firestore, session: SessionData): Promise<void> {
@@ -237,6 +264,7 @@ async function main(): Promise<void> {
   initAdmin();
   const db = admin.firestore();
 
+  if (teardown.deleteOrphanedBets)     await deleteOrphanedBets(db);
   if (teardown.deleteFirestoreMatches) await deleteMatches(db, session);
   if (teardown.deleteFirestoreBets)    await deleteBets(db, session);
   if (teardown.deleteFirestoreGroups)  await deleteGroups(db, session);
