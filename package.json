@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "set TURBOPACK=0 && next dev",
+    "dev:turbo": "next dev",
     "build": "next build",
     "build2": "powershell -Command \"next build 2>&1 | Tee-Object -FilePath 'build.log' -Append\"",
     "start": "next start",
