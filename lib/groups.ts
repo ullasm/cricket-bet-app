@@ -305,7 +305,12 @@ async function flushBatches(batches: WriteBatch[], context: string): Promise<voi
  * Firebase Admin SDK.
  */
 export async function deleteGroupCascade(groupId: string, adminUserId: string): Promise<void> {
-  // ── 1. Auth guard ────────────────────────────────────────────────────────
+  // ── 1. Feature flag guard ────────────────────────────────────────────────
+  if (process.env.ALLOW_DELETE_GROUP !== 'true') {
+    throw new Error('Group deletion is disabled');
+  }
+
+  // ── 2. Auth guard ────────────────────────────────────────────────────────
   const admin = await getUserGroupMember(groupId, adminUserId);
   if (!admin || admin.role !== 'admin') {
     throw new Error('Admin privileges required to delete this group');

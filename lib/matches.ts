@@ -104,10 +104,16 @@ export async function updateMatch(
   matchId: string,
   fields: Partial<Pick<Match, 'teamA' | 'teamB' | 'format' | 'drawAllowed' | 'noDrawPolicy' | 'matchDate' | 'bettingOpen'>>
 ): Promise<void> {
+  if (process.env.ALLOW_MANAGE_MATCHES !== 'true') {
+    throw new Error('Match management is disabled');
+  }
   await updateDoc(doc(db, 'matches', matchId), fields as Record<string, unknown>);
 }
 
 export async function deleteMatch(matchId: string): Promise<void> {
+  if (process.env.ALLOW_MANAGE_MATCHES !== 'true') {
+    throw new Error('Match management is disabled');
+  }
   await deleteDoc(doc(db, 'matches', matchId));
 }
 
@@ -318,6 +324,9 @@ export async function declareMatchResult(
   result: 'team_a' | 'team_b' | 'draw' | 'abandoned',
   noDrawPolicy: Match['noDrawPolicy']
 ): Promise<import('./settleMatch').SettlementSummary> {
+  if (process.env.ALLOW_MANAGE_MATCHES !== 'true') {
+    throw new Error('Match management is disabled');
+  }
   return declareMatchResultEngine(matchId, groupId, result, noDrawPolicy);
 }
 
@@ -328,6 +337,9 @@ export async function adminUpsertBetForMatch(
   userId: string,
   betInput: BetInput
 ): Promise<void> {
+  if (process.env.ALLOW_MANAGE_MATCHES !== 'true') {
+    throw new Error('Match management is disabled');
+  }
   const currentMatch = await getMatchById(matchId);
   if (!currentMatch) {
     throw new Error('Match not found');
@@ -380,6 +392,9 @@ export async function adminClearBetForMatch(
   groupId: string,
   userId: string
 ): Promise<void> {
+  if (process.env.ALLOW_MANAGE_MATCHES !== 'true') {
+    throw new Error('Match management is disabled');
+  }
   const currentMatch = await getMatchById(matchId);
   if (!currentMatch) {
     throw new Error('Match not found');
