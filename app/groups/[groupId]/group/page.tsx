@@ -567,19 +567,21 @@ function ManageContent() {
         </Card>
 
         {/* ── Section 4: Danger Zone — admin only ── */}
-        {isAdmin && <Card variant="danger-zone" className="space-y-3">
-          <h2 className="text-lg font-semibold text-red-400">Danger Zone</h2>
-          <p className="text-sm text-[var(--text-secondary)]">
-            Deleting a group removes all matches, bets, and member records permanently.
-          </p>
-          <Button
-            variant="ghost-danger"
-            size="lg"
-            onClick={() => { setDeleteGroupInput(''); setConfirmDeleteGroup(true); }}
-          >
-            Delete Group
-          </Button>
-        </Card>}
+        {isAdmin && process.env.NEXT_PUBLIC_ALLOW_DELETE_GROUP === 'true' && (
+          <Card variant="danger-zone" className="space-y-3">
+            <h2 className="text-lg font-semibold text-red-400">Danger Zone</h2>
+            <p className="text-sm text-[var(--text-secondary)]">
+              Deleting a group removes all matches, bets, and member records permanently.
+            </p>
+            <Button
+              variant="ghost-danger"
+              size="lg"
+              onClick={() => { setDeleteGroupInput(''); setConfirmDeleteGroup(true); }}
+            >
+              Delete Group
+            </Button>
+          </Card>
+        )}
 
       </main>
     </div>
