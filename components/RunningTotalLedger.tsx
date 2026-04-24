@@ -34,8 +34,6 @@ interface RunningTotalLedgerProps {
   currentUserId: string;
 }
 
-type FilterOption = 'Betted' | 'Betted By Me' | 'All';
-
 // ── Helper Functions ───────────────────────────────────────────────────────
 
 /**
@@ -63,14 +61,16 @@ function getWinnerDisplay(match: MatchData): string {
   return match.winner;
 }
 
-// ── Filter Pills ────────────────────────────────────────────────────────────
+// ── Member Filter Pill ───────────────────────────────────────────────────────
 
-function FilterPill({
+function MemberFilterPill({
   label,
+  count,
   active,
   onClick,
 }: {
-  label: FilterOption;
+  label: string;
+  count: number;
   active: boolean;
   onClick: () => void;
 }) {
@@ -84,6 +84,9 @@ function FilterPill({
       }`}
     >
       {label}
+      <span className={active ? 'text-blue-200 ml-1' : 'text-[var(--text-muted)] ml-1'}>
+        ({count})
+      </span>
     </button>
   );
 }
@@ -96,15 +99,9 @@ export function RunningTotalLedger({
   bets,
   currentUserId,
 }: RunningTotalLedgerProps) {
-  const [activeFilter, setActiveFilter] = useState<FilterOption>('Betted');
   const tableRef = useRef<HTMLDivElement>(null);
   const topScrollRef = useRef<HTMLDivElement>(null);
   const [tableScrollWidth, setTableScrollWidth] = useState(0);
-
-  // Sort members by display name for consistent column ordering
-  const sortedMembers = useMemo(() => {
-    return [...members].sort((a, b) => a.displayName.localeCompare(b.displayName));
-  }, [members]);
 
   // Sort matches by date (oldest first for chronological ledger)
   const sortedMatches = useMemo(() => {
@@ -123,35 +120,68 @@ export function RunningTotalLedger({
     return matchIds;
   }, [bets]);
 
-  // Build a set of matchIds where the current user has a bet
-  const matchIdsWithMyBets = useMemo(() => {
-    const settledStatuses = new Set(['won', 'lost', 'refunded', 'locked']);
-    const matchIds = new Set<string>();
-    bets.forEach((bet) => {
-      if (bet.userId === currentUserId && settledStatuses.has(bet.status)) {
-        matchIds.add(bet.matchId);
-      }
-    });
-    return matchIds;
-  }, [bets, currentUserId]);
-
-  // Filter matches based on active filter
+  // Always filter to only show matches that have bets ("Betted" view)
   const filteredMatches = useMemo(() => {
-    if (activeFilter === 'All') return sortedMatches;
-    if (activeFilter === 'Betted') {
-      return sortedMatches.filter((m) => matchIdsWithBets.has(m.matchId));
-    }
-    // 'Betted By Me'
-    return sortedMatches.filter((m) => matchIdsWithMyBets.has(m.matchId));
-  }, [sortedMatches, activeFilter, matchIdsWithBets, matchIdsWithMyBets]);
+    return sortedMatches.filter((m) => matchIdsWithBets.has(m.matchId));
+  }, [sortedMatches, matchIdsWithBets]);
 
-  // Build the ledger rows with running totals (using filtered matches)
+  // Count how many bets each member has in the filtered matches
+  const memberBetCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    const filteredMatchIds = new Set(filteredMatches.map((m) => m.matchId));
+    members.forEach((member) => {
+      counts[member.userId] = bets.filter(
+        (b) => b.userId === member.userId && filteredMatchIds.has(b.matchId) && b.pointsDelta !== null && b.status !== 'pending'
+      ).length;
+    });
+    return counts;
+  }, [members, filteredMatches, bets]);
+
+  // Sort members: current user first, then by bet count descending
+  const sortedMembers = useMemo(() => {
+    return [...members].sort((a, b) => {
+      // Current user always first
+      if (a.userId === currentUserId) return -1;
+      if (b.userId === currentUserId) return 1;
+      // Then sort by bet count descending
+      const countDiff = (memberBetCounts[b.userId] ?? 0) - (memberBetCounts[a.userId] ?? 0);
+      if (countDiff !== 0) return countDiff;
+      // Tie-break by display name
+      return a.displayName.localeCompare(b.displayName);
+    });
+  }, [members, currentUserId, memberBetCounts]);
+
+  // Default selection: only the current user
+  const [selectedMemberIds, setSelectedMemberIds] = useState<Set<string>>(() => {
+    return new Set([currentUserId]);
+  });
+
+  // Filter sortedMembers to only selected ones
+  const visibleMembers = useMemo(() => {
+    return sortedMembers.filter((m) => selectedMemberIds.has(m.userId));
+  }, [sortedMembers, selectedMemberIds]);
+
+  // Toggle a member's selection (always keep at least 1 selected)
+  const toggleMember = useCallback((userId: string) => {
+    setSelectedMemberIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(userId)) {
+        if (next.size <= 1) return prev; // keep at least 1
+        next.delete(userId);
+      } else {
+        next.add(userId);
+      }
+      return next;
+    });
+  }, []);
+
+  // Build the ledger rows with running totals (only for visible members)
   const ledgerRows = useMemo((): LedgerRow[] => {
     const rows: LedgerRow[] = [];
     const runningTotals: Record<string, number> = {};
 
-    // Initialize running totals to 0 for all members
-    sortedMembers.forEach((member) => {
+    // Initialize running totals to 0 for all visible members
+    visibleMembers.forEach((member) => {
       runningTotals[member.userId] = 0;
     });
 
@@ -159,7 +189,7 @@ export function RunningTotalLedger({
       // Get bets for this match
       const deltas: Record<string, number | null> = {};
 
-      sortedMembers.forEach((member) => {
+      visibleMembers.forEach((member) => {
         const bet = bets.find(
           (b) => b.matchId === match.matchId && b.userId === member.userId
         );
@@ -190,7 +220,7 @@ export function RunningTotalLedger({
     });
 
     return rows;
-  }, [sortedMembers, filteredMatches, bets]);
+  }, [visibleMembers, filteredMatches, bets]);
 
   // ── Dual Scrollbar Sync ──────────────────────────────────────────────────
 
@@ -205,7 +235,7 @@ export function RunningTotalLedger({
 
     updateWidth();
 
-    // Use ResizeObserver to react to layout changes (filter changes, etc.)
+    // Use ResizeObserver to react to layout changes
     const observer = new ResizeObserver(updateWidth);
     observer.observe(el);
     return () => observer.disconnect();
@@ -227,18 +257,17 @@ export function RunningTotalLedger({
 
   // ── Render ───────────────────────────────────────────────────────────────
 
-  const filterOptions: FilterOption[] = ['Betted', 'Betted By Me', 'All'];
-
   return (
     <div>
-      {/* Filter Bar */}
-      <div className="flex items-center gap-2 mb-4">
-        {filterOptions.map((option) => (
-          <FilterPill
-            key={option}
-            label={option}
-            active={activeFilter === option}
-            onClick={() => setActiveFilter(option)}
+      {/* Member Filter Bar */}
+      <div className="flex items-center gap-2 mb-4 flex-wrap">
+        {sortedMembers.map((member) => (
+          <MemberFilterPill
+            key={member.userId}
+            label={member.displayName}
+            count={memberBetCounts[member.userId] ?? 0}
+            active={selectedMemberIds.has(member.userId)}
+            onClick={() => toggleMember(member.userId)}
           />
         ))}
       </div>
@@ -283,13 +312,16 @@ export function RunningTotalLedger({
                   Result
                 </th>
                 {/* Member columns — z-20 so they scroll under the sticky group headers */}
-                {sortedMembers.map((member) => (
+                {visibleMembers.map((member) => (
                   <th
                     key={member.userId}
                     className="sticky top-0 z-20 py-2 px-2 text-xs font-medium text-[var(--text-primary)] bg-[#1a2235] border-b border-[var(--border)] text-center"
                     style={{ minWidth: `${MEMBER_COLUMN_WIDTH}px` }}
                   >
                     {member.displayName}
+                    <span className="text-[var(--text-muted)] font-normal ml-1">
+                      ({memberBetCounts[member.userId] ?? 0})
+                    </span>
                   </th>
                 ))}
               </tr>
@@ -298,14 +330,10 @@ export function RunningTotalLedger({
               {ledgerRows.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={3 + sortedMembers.length}
+                    colSpan={3 + visibleMembers.length}
                     className="py-8 text-center text-xs text-[var(--text-muted)]"
                   >
-                    {activeFilter === 'All'
-                      ? 'No completed matches yet.'
-                      : activeFilter === 'Betted'
-                      ? 'No matches with bets yet.'
-                      : 'You haven\'t placed any bets yet.'}
+                    No matches with bets yet.
                   </td>
                 </tr>
               ) : (
@@ -347,7 +375,7 @@ export function RunningTotalLedger({
                       </td>
 
                       {/* Member columns — no sticky, scroll horizontally */}
-                      {sortedMembers.map((member) => {
+                      {visibleMembers.map((member) => {
                         if (isRunningTotal) {
                           const total = row.totals?.[member.userId] ?? 0;
                           return (

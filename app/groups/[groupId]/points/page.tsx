@@ -408,7 +408,7 @@ function PointsContent() {
         {/* Running Total Ledger */}
         {showLedger && completedMatches.length > 0 && (
           <Card variant="default">
-            <SectionHeader title="Match History Ledger" mb="mb-4" />
+            <SectionHeader title="Running Total Report" mb="mb-4" />
             <RunningTotalLedger
               members={members}
               matches={completedMatches}
