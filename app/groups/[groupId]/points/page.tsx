@@ -248,9 +248,9 @@ function PointsContent() {
                     }`}
                   >
                     {/* Left column: Rank + Avatar (vertically centered) */}
-                    <div className="flex items-center gap-3 shrink-0 pt-[6px]" style={{ minWidth: '72px' }}>
+                    <div className="flex items-center gap-3 shrink-0 pt-1" style={{ minWidth: '82px' }}>
                       <span className="text-[var(--text-muted)] text-sm w-5 text-right shrink-0">{i + 1}.</span>
-                      <Avatar name={m.displayName} color={m.avatarColor} size="sm" />
+                      <Avatar name={m.displayName} color={m.avatarColor} size="lg" />
                     </div>
                     {/* Right column: Name + Badges + Points + Trending dots */}
                     <div className="flex-1 min-w-0">
