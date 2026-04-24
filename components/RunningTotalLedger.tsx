@@ -308,7 +308,7 @@ export function RunningTotalLedger({
               <tr className="text-left">
                 {/* Sticky first column — Date + Match / Result merged */}
                 <th
-                  className="sticky top-0 left-0 z-30 py-2 px-2 text-xs font-medium text-[var(--text-muted)] bg-[#1a2235] border-b border-r border-[var(--border)] shadow-[4px_0_10px_-2px_rgba(0,0,0,0.5)] min-w-[120px] sm:min-w-[240px] max-w-[50vw] whitespace-normal"
+                  className="sticky top-0 left-0 z-30 py-2 px-2 text-xs font-medium text-[var(--text-muted)] bg-[#1a2235] border-b border-r border-[var(--border)] shadow-[4px_0_10px_-2px_rgba(0,0,0,0.5)] min-w-[180px] sm:min-w-[240px] max-w-[50vw] whitespace-normal"
                 >
                   Date / Match / Result
                 </th>
@@ -345,7 +345,7 @@ export function RunningTotalLedger({
                     >
                       {/* Sticky merged column — Date + Match / Result — shadow creates visual edge when scrolling */}
                       <td
-                        className="sticky-col sticky left-0 z-10 py-1.5 px-2 text-xs text-[var(--text-primary)] border-r border-[var(--border)] bg-[#1a2235] shadow-[4px_0_10px_-2px_rgba(0,0,0,0.5)] min-w-[120px] sm:min-w-[240px] max-w-[50vw] whitespace-normal break-words"
+                        className="sticky-col sticky left-0 z-10 py-1.5 px-2 text-xs text-[var(--text-primary)] border-r border-[var(--border)] bg-[#1a2235] shadow-[4px_0_10px_-2px_rgba(0,0,0,0.5)] min-w-[180px] sm:min-w-[240px] max-w-[50vw] whitespace-normal break-words"
                       >
                         {isRunningTotal ? (
                           <span className="text-[var(--text-muted)] text-[10px] font-medium tracking-wide uppercase">
