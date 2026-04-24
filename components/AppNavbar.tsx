@@ -232,20 +232,24 @@ export default function AppNavbar({
 
           </div>
 
-          {/* ── Mobile: logo + avatar row, then group name row, then tabs row ── */}
+          {/* ── Mobile: logo + avatar row, then tabs row ── */}
           <div className="sm:hidden">
 
-            {/* Row 1: logo + avatar */}
-            <div className="flex items-center justify-between px-4 h-[52px]">
-              <Link href="/" className="text-xl font-bold whitespace-nowrap">
-                🏆 <span className="text-[var(--text-primary)]">Who</span><span className="text-blue-400">Wins</span>
-              </Link>
-              {dropdown}
+            {/* Row 1: logo + center content + avatar */}
+            <div className="flex items-center justify-between px-4 h-[52px] gap-2">
+              <div className="flex items-center gap-3 min-w-0 flex-1">
+                <Link href="/" className="text-xl font-bold whitespace-nowrap shrink-0">
+                  🏆 <span className="text-[var(--text-primary)]">Who</span><span className="text-blue-400">Wins</span>
+                </Link>
+                <div className="truncate flex-1 flex items-center min-w-0">
+                  {center}
+                </div>
+              </div>
+              <div className="shrink-0">{dropdown}</div>
             </div>
 
-            {/* Row 2: group name (left) + tabs (right) */}
-            <div className="flex items-stretch justify-between px-4 h-[28px]">
-              <div className="flex items-center">{center}</div>
+            {/* Row 2: tabs */}
+            <div className="flex items-stretch justify-start px-4 h-[28px] overflow-x-auto hide-scrollbar">
               <div className="flex items-stretch gap-5">
                 {tabs.map((tab) => {
                   const active = pathname === tab.href;

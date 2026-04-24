@@ -160,6 +160,7 @@ function SettlementsContent() {
         tabs={[
           { label: 'Dashboard',   href: `/groups/${groupId}` },
           { label: 'Points',      href: `/groups/${groupId}/points` },
+          { label: 'Report',      href: `/groups/${groupId}/report` },
           { label: 'Settlements', href: `/groups/${groupId}/settlements` },
           ...(isAdmin ? [
             { label: 'Matches',   href: `/groups/${groupId}/matches` },

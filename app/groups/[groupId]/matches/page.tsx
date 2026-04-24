@@ -814,6 +814,7 @@ function GroupAdminContent() {
         tabs={[
           { label: 'Dashboard',   href: `/groups/${groupId}` },
           { label: 'Points',   href: `/groups/${groupId}/points` },
+          { label: 'Report',   href: `/groups/${groupId}/report` },
           { label: 'Matches',  href: `/groups/${groupId}/matches` },
           { label: 'Group',       href: `/groups/${groupId}/group` },
         ]}

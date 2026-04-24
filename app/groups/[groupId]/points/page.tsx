@@ -16,7 +16,6 @@ import { computeSettlements, acknowledgeSettlement } from '@/lib/settlements';
 import type { ComputedSettlement, Settlement } from '@/lib/settlements';
 import { getLastNBetsForUser, getBetsForGroup, type Match, type Bet } from '@/lib/matches';
 import { Spinner, Badge, Card, Avatar, SectionHeader } from '@/components/ui';
-import { RunningTotalLedger } from '@/components/RunningTotalLedger';
 
 // Type for bet trend result
 interface BetTrend {
@@ -25,18 +24,8 @@ interface BetTrend {
   matchName: string;
 }
 
-// Type for ledger match data
-interface LedgerMatch {
-  matchId: string;
-  matchName: string;
-  matchDate: Date;
-  winner: string;
-  teamA: string;
-  teamB: string;
-}
 
 const showSettlements = process.env.NEXT_PUBLIC_SHOW_SETTLEMENTS === 'true';
-const showLedger = process.env.NEXT_PUBLIC_SHOW_LEDGER === 'true'; // must be explicitly enabled
 
 function PointsContent() {
   const params = useParams<{ groupId: string }>();
@@ -50,8 +39,6 @@ function PointsContent() {
   const [acknowledgingSettlements, setAcknowledgingSettlements] = useState<Set<string>>(new Set());
   const [confirmInputs, setConfirmInputs] = useState<Record<string, string>>({});
   const [memberBetTrends, setMemberBetTrends] = useState<Record<string, BetTrend[]>>({});
-  const [completedMatches, setCompletedMatches] = useState<LedgerMatch[]>([]);
-  const [groupBets, setGroupBets] = useState<Bet[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -153,61 +140,6 @@ function PointsContent() {
       }
     );
 
-    // Fetch completed matches for the ledger
-    const fetchMatchesAndBets = async () => {
-      try {
-        // Get completed matches
-        const matchesSnap = await getDocs(
-          query(
-            collection(db, 'matches'),
-            where('groupId', '==', groupId),
-            where('status', '==', 'completed')
-          )
-        );
-        
-        const matches: LedgerMatch[] = matchesSnap.docs
-          .map((d) => {
-            const data = d.data() as Match;
-            let winner = 'TBD';
-            if (data.result === 'team_a') winner = data.teamA;
-            else if (data.result === 'team_b') winner = data.teamB;
-            else if (data.result === 'draw') winner = 'Draw';
-            else if (data.result === 'abandoned') winner = 'Abandoned';
-            
-            return {
-              matchId: d.id,
-              matchName: `${data.teamA} vs ${data.teamB}`,
-              matchDate: data.matchDate.toDate(),
-              winner,
-              teamA: data.teamA,
-              teamB: data.teamB,
-            };
-          })
-          .sort((a, b) => a.matchDate.getTime() - b.matchDate.getTime());
-        
-        if (!cancelled) {
-          setCompletedMatches(matches);
-        }
-
-        // Get all bets for the group
-        const betsSnap = await getDocs(
-          query(collection(db, 'bets'), where('groupId', '==', groupId))
-        );
-        
-        const bets: Bet[] = betsSnap.docs.map((d) => ({ 
-          id: d.id, 
-          ...d.data() 
-        } as Bet));
-        
-        if (!cancelled) {
-          setGroupBets(bets);
-        }
-      } catch (err) {
-        console.error('Error fetching matches and bets for ledger:', err);
-      }
-    };
-
-    fetchMatchesAndBets();
 
     return () => {
       cancelled = true;
@@ -274,11 +206,6 @@ function PointsContent() {
 
   const allSettlementRows = [...outstanding, ...acknowledgedRows];
 
-  // Filter bets to only include those for completed matches (for the ledger)
-  const ledgerBets = groupBets.filter(bet => 
-    completedMatches.some(m => m.matchId === bet.matchId)
-  );
-
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
       <AppNavbar
@@ -293,6 +220,7 @@ function PointsContent() {
         tabs={[
           { label: 'Dashboard', href: `/groups/${groupId}` },
           { label: 'Points',    href: `/groups/${groupId}/points` },
+          { label: 'Report',    href: `/groups/${groupId}/report` },
           ...(isAdmin ? [{ label: 'Matches', href: `/groups/${groupId}/matches` }] as NavTab[] : []),
           { label: 'Group',     href: `/groups/${groupId}/group` },
         ]}
@@ -404,19 +332,6 @@ function PointsContent() {
             </ol>
           )}
         </Card>
-
-        {/* Running Total Ledger */}
-        {showLedger && completedMatches.length > 0 && (
-          <Card variant="default">
-            <SectionHeader title="Running Total Report" mb="mb-4" />
-            <RunningTotalLedger
-              members={members}
-              matches={completedMatches}
-              bets={ledgerBets}
-              currentUserId={user?.uid ?? ''}
-            />
-          </Card>
-        )}
 
         {/* Settlements */}
         {showSettlements && <Card variant="default">

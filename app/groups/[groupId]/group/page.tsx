@@ -351,6 +351,7 @@ function ManageContent() {
         tabs={[
           { label: 'Dashboard', href: `/groups/${groupId}` },
           { label: 'Points',    href: `/groups/${groupId}/points` },
+          { label: 'Report',    href: `/groups/${groupId}/report` },
           ...(isAdmin ? [{ label: 'Matches', href: `/groups/${groupId}/matches` }] as const : []),
           { label: 'Group',     href: `/groups/${groupId}/group` },
         ]}
