@@ -16,6 +16,7 @@ import { upsertUserBetForMatch, removeUserBetForMatch, closeBettingForMatch } fr
 import type { Match, Bet } from '@/lib/matches';
 import { Spinner, Button, Badge, Card, Modal, SectionHeader, matchStatusVariant, betStatusVariant } from '@/components/ui';
 import { WhoBettedSection, PotentialOutcomesSection, PointsSummarySection, getMatchResultLabel, getPickedLabel } from '@/components/MatchBettingDetails';
+import { SettledMatchCard } from '@/components/SettledMatchCard';
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -28,11 +29,11 @@ function isSameDay(a: Date, b: Date) {
 }
 
 function isPastMatch(match: Match, now: Date) {
-  return (
-    match.status === 'completed' ||
-    match.status === 'abandoned' ||
-    (match.status === 'upcoming' && match.matchDate.toDate() < now && !isSameDay(match.matchDate.toDate(), now))
-  );
+  // "Past" = strictly before yesterday (i.e. older than 2 days ago)
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  yesterday.setHours(0, 0, 0, 0);
+  return match.matchDate.toDate() < yesterday;
 }
 
 function formatMatchDate(ts: Match['matchDate']) {
@@ -389,103 +390,6 @@ function MatchCard({ match, groupId, myBet, bets, memberNames, currentUserId, on
   );
 }
 
-interface PastMatchCardProps {
-  match: Match;
-  bets: Bet[];
-  memberNames: Record<string, string>;
-}
-
-function getBetChipLabel(bet: Bet) {
-  if (bet.status === 'won') {
-    return `+${bet.pointsDelta ?? 0} pts`;
-  }
-  if (bet.status === 'lost') {
-    return `−${Math.abs(bet.pointsDelta ?? 0)} pts`;
-  }
-  if (bet.status === 'refunded') {
-    return 'refunded';
-  }
-  return 'pending';
-}
-
-function getBetChipClasses(status: Bet['status']) {
-  // These chips include a border which Badge doesn't support — left as raw class strings
-  if (status === 'won') {
-    return 'bg-green-500/15 text-green-400 border border-green-500/25';
-  }
-  if (status === 'lost') {
-    return 'bg-red-500/15 text-red-400 border border-red-500/25';
-  }
-  return 'bg-[var(--bg-input)] text-[var(--text-muted)] border border-[var(--border)]';
-}
-
-function getBetSortRank(status: Bet['status']) {
-  if (status === 'won') return 0;
-  if (status === 'lost') return 1;
-  return 2;
-}
-
-function PastMatchCard({ match, bets, memberNames }: PastMatchCardProps) {
-  const resultLabel = getMatchResultLabel(match);
-  const sortedBets = [...bets].sort((a, b) => {
-    const rankDiff = getBetSortRank(a.status) - getBetSortRank(b.status);
-    if (rankDiff !== 0) return rankDiff;
-
-    const nameA = memberNames[a.userId] ?? 'Unknown';
-    const nameB = memberNames[b.userId] ?? 'Unknown';
-    return nameA.localeCompare(nameB);
-  });
-
-  return (
-    <Card variant="default" className="flex flex-col gap-3">
-      <div className="flex items-center justify-between gap-2 flex-wrap">
-        <span className="font-semibold text-[var(--text-primary)]">
-          {match.teamA} <span className="text-[var(--text-muted)]">vs</span> {match.teamB}
-        </span>
-        <div className="flex items-center gap-2">
-          <Badge variant="format">{match.format}</Badge>
-          <Badge variant={matchStatusVariant(match.status)}>
-            {match.status.charAt(0).toUpperCase() + match.status.slice(1)}
-          </Badge>
-        </div>
-      </div>
-
-      <p className="text-xs text-[var(--text-muted)]">{formatMatchDate(match.matchDate)}</p>
-
-      <div className="flex items-center gap-2 text-xs font-medium text-[var(--text-primary)]">
-        <span aria-hidden>🏆</span>
-        <span>{resultLabel}</span>
-      </div>
-
-      {sortedBets.length === 0 ? (
-        <p className="text-xs text-[var(--text-muted)]">No bets placed</p>
-      ) : (
-        <div className="space-y-2">
-          {[
-            sortedBets.filter((b) => b.status === 'won'),
-            sortedBets.filter((b) => b.status !== 'won'),
-          ].map((group, gi) =>
-            group.length === 0 ? null : (
-              <div key={gi} className="flex flex-wrap gap-2">
-                {group.map((bet) => {
-                  const displayName = memberNames[bet.userId] ?? 'Unknown';
-                  return (
-                    <span
-                      key={bet.id}
-                      className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${getBetChipClasses(bet.status)}`}
-                    >
-                      {displayName}: {getBetChipLabel(bet)}
-                    </span>
-                  );
-                })}
-              </div>
-            )
-          )}
-        </div>
-      )}
-    </Card>
-  );
-}
 
 // ── main content ──────────────────────────────────────────────────────────────
 
@@ -687,20 +591,13 @@ function GroupDashboardContent() {
     return acc;
   }, {});
 
-  const todayMatches = matches
-    .filter(
-      (m) =>
-        m.status === 'live' ||
-        (m.status === 'upcoming' && isSameDay(m.matchDate.toDate(), today))
-    )
-    .sort((a, b) => a.matchDate.toMillis() - b.matchDate.toMillis());
-  const upcomingMatches = matches
-    .filter(
-      (m) =>
-        m.status === 'upcoming' &&
-        m.matchDate.toDate() > today &&
-        !isSameDay(m.matchDate.toDate(), today)
-    )
+  // Matches from yesterday onwards — live, completed yesterday/today, upcoming
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  yesterday.setHours(0, 0, 0, 0);
+
+  const activeMatches = matches
+    .filter((m) => m.matchDate.toDate() >= yesterday)
     .sort((a, b) => a.matchDate.toMillis() - b.matchDate.toMillis());
   const pastMatches = matches.filter((m) => isPastMatch(m, today));
   const filteredPastMatches = pastMatches.filter((m) => {
@@ -744,7 +641,7 @@ function GroupDashboardContent() {
             <SectionHeader title="Recent" mb="mb-3" />
             <div className="space-y-3">
               {recentBetMatches.map((m) => (
-                <PastMatchCard
+                <SettledMatchCard
                   key={m.id}
                   match={m}
                   bets={allBets[m.id] ?? []}
@@ -755,54 +652,37 @@ function GroupDashboardContent() {
           </section>
         )}
 
-        {/* Live & Today */}
+        {/* Recent & Upcoming — yesterday onwards */}
         <section>
-          <SectionHeader title="Ongoing" mb="mb-3" />
-          {todayMatches.length === 0 ? (
+          <SectionHeader title="Recent & Upcoming" mb="mb-3" />
+          {activeMatches.length === 0 ? (
             <Card variant="default" className="text-[var(--text-muted)] text-sm text-center">
-              No matches today
+              No active matches
             </Card>
           ) : (
             <div className="space-y-3">
-              {todayMatches.map((m) => (
-                <MatchCard
-                  key={m.id}
-                  match={m}
-                  groupId={groupId}
-                  myBet={myBets[m.id]}
-                  bets={allBets[m.id] ?? []}
-                  memberNames={memberNames}
-                  currentUserId={user?.uid}
-                  onBetUpdated={handleMyBetUpdated}
-                  onBetRemoved={handleMyBetRemoved}
-                />
-              ))}
-            </div>
-          )}
-        </section>
-
-        {/* Upcoming */}
-        <section>
-          <SectionHeader title="Upcoming" mb="mb-3" />
-          {upcomingMatches.length === 0 ? (
-            <Card variant="default" className="text-[var(--text-muted)] text-sm text-center">
-              No upcoming matches
-            </Card>
-          ) : (
-            <div className="space-y-3">
-              {upcomingMatches.map((m) => (
-                <MatchCard
-                  key={m.id}
-                  match={m}
-                  groupId={groupId}
-                  myBet={myBets[m.id]}
-                  bets={allBets[m.id] ?? []}
-                  memberNames={memberNames}
-                  currentUserId={user?.uid}
-                  onBetUpdated={handleMyBetUpdated}
-                  onBetRemoved={handleMyBetRemoved}
-                />
-              ))}
+              {activeMatches.map((m) =>
+                m.status === 'completed' || m.status === 'abandoned' ? (
+                  <SettledMatchCard
+                    key={m.id}
+                    match={m}
+                    bets={allBets[m.id] ?? []}
+                    memberNames={memberNames}
+                  />
+                ) : (
+                  <MatchCard
+                    key={m.id}
+                    match={m}
+                    groupId={groupId}
+                    myBet={myBets[m.id]}
+                    bets={allBets[m.id] ?? []}
+                    memberNames={memberNames}
+                    currentUserId={user?.uid}
+                    onBetUpdated={handleMyBetUpdated}
+                    onBetRemoved={handleMyBetRemoved}
+                  />
+                )
+              )}
             </div>
           )}
         </section>
@@ -834,7 +714,7 @@ function GroupDashboardContent() {
           ) : (
             <div className="space-y-3">
               {filteredPastMatches.map((m) => (
-                <PastMatchCard
+                <SettledMatchCard
                   key={m.id}
                   match={m}
                   bets={allBets[m.id] ?? []}
