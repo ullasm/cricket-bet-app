@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
-import { collection, query, where, orderBy, onSnapshot, getDoc, doc, getDocs } from 'firebase/firestore';
+import { collection, query, where, orderBy, onSnapshot, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import AppNavbar, { type NavTab } from '@/components/AppNavbar';
 import ProtectedRoute from '@/components/ProtectedRoute';
@@ -14,13 +14,13 @@ import { getGroupById, getUserGroupMember } from '@/lib/groups';
 import type { Group, GroupMember } from '@/lib/groups';
 import { computeSettlements, acknowledgeSettlement } from '@/lib/settlements';
 import type { ComputedSettlement, Settlement } from '@/lib/settlements';
-import { getLastNBetsForUser, getBetsForGroup, type Match, type Bet } from '@/lib/matches';
+import { getLastNSettledMatches, type Bet } from '@/lib/matches';
 import { Spinner, Badge, Card, Avatar, SectionHeader } from '@/components/ui';
 
-// Type for bet trend result
-interface BetTrend {
-  status: 'won' | 'lost' | 'refunded' | 'locked' | 'pending';
-  pointsDelta: number | null;
+// Type for match trend result — one entry per match
+interface MatchTrend {
+  /** 'won' | 'lost' | 'refunded' | 'locked' if user placed a bet, 'no_bet' if they didn't */
+  status: 'won' | 'lost' | 'refunded' | 'locked' | 'no_bet';
   matchName: string;
 }
 
@@ -38,7 +38,7 @@ function PointsContent() {
   const [groupSettlements, setGroupSettlements] = useState<Settlement[]>([]);
   const [acknowledgingSettlements, setAcknowledgingSettlements] = useState<Set<string>>(new Set());
   const [confirmInputs, setConfirmInputs] = useState<Record<string, string>>({});
-  const [memberBetTrends, setMemberBetTrends] = useState<Record<string, BetTrend[]>>({});
+  const [memberBetTrends, setMemberBetTrends] = useState<Record<string, MatchTrend[]>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -76,49 +76,59 @@ function PointsContent() {
         const mine = updated.find((m) => m.userId === user.uid);
         if (mine) setMyMember(mine);
         
-        // Fetch last 5 bets for each member with match details
-        const trendsWithMatches: Record<string, BetTrend[]> = {};
+        // Fetch last 5 settled matches for the group, then determine each
+        // member's outcome (won / lost / no_bet) per match.
+        const trendsWithMatches: Record<string, MatchTrend[]> = {};
         try {
-          await Promise.all(
-            updated.map(async (member) => {
-              try {
-                const bets = await getLastNBetsForUser(groupId, member.userId, 5);
-                const betsWithMatchNames = await Promise.all(
-                  bets.map(async (bet) => {
-                    try {
-                      const matchSnap = await getDoc(doc(db, 'matches', bet.matchId));
-                      const matchData = matchSnap.exists() ? matchSnap.data() : null;
-                      const matchName = matchData
-                        ? `${matchData.teamA} vs ${matchData.teamB}`
-                        : 'Unknown Match';
-                      return {
-                        status: bet.status,
-                        pointsDelta: bet.pointsDelta,
-                        matchName,
-                      };
-                    } catch (matchErr) {
-                      console.error(`Error fetching match ${bet.matchId}:`, matchErr);
-                      return {
-                        status: bet.status,
-                        pointsDelta: bet.pointsDelta,
-                        matchName: 'Unknown Match',
-                      };
-                    }
-                  })
-                );
-                trendsWithMatches[member.userId] = betsWithMatchNames;
-              } catch (betsErr) {
-                console.error(`[BetTrends] Error fetching bets for member ${member.displayName}:`, betsErr);
-                trendsWithMatches[member.userId] = [];
-              }
-            })
-          );
+          const settledMatches = await getLastNSettledMatches(groupId, 5);
+          
+          if (settledMatches.length > 0) {
+            // Fetch all bets for these matches in one shot
+            const allBetsSnap = await getDocs(
+              query(
+                collection(db, 'bets'),
+                where('groupId', '==', groupId),
+                where('matchId', 'in', settledMatches.map((m) => m.id))
+              )
+            );
+            const allBets = allBetsSnap.docs.map((d) => ({ id: d.id, ...d.data() } as Bet));
+            
+            // Build a lookup: matchId -> userId -> bet
+            const betsByMatchAndUser: Record<string, Record<string, Bet>> = {};
+            for (const bet of allBets) {
+              if (!betsByMatchAndUser[bet.matchId]) betsByMatchAndUser[bet.matchId] = {};
+              betsByMatchAndUser[bet.matchId][bet.userId] = bet;
+            }
+            
+            for (const member of updated) {
+              const trends: MatchTrend[] = settledMatches.map((match) => {
+                const matchName = `${match.teamA} vs ${match.teamB}`;
+                const userBet = betsByMatchAndUser[match.id]?.[member.userId];
+                
+                if (!userBet) {
+                  return { status: 'no_bet', matchName };
+                }
+                
+                // Only show settled statuses; pending bets treated as no_bet
+                if (userBet.status === 'pending') {
+                  return { status: 'no_bet', matchName };
+                }
+                
+                return {
+                  status: userBet.status as MatchTrend['status'],
+                  matchName,
+                };
+              });
+              
+              trendsWithMatches[member.userId] = trends;
+            }
+          }
           
           if (!cancelled) {
             setMemberBetTrends(trendsWithMatches);
           }
         } catch (err) {
-          console.error('Error fetching bet trends:', err);
+          console.error('Error fetching match trends:', err);
         }
         
         setLoading(false);
@@ -268,60 +278,54 @@ function PointsContent() {
                           {m.totalPoints} pts
                         </span>
                       </div>
-                      {/* Trending dots */}
+                      {/* Match trend dots — one per recent settled match */}
                       <div className="flex items-center gap-[6px] mt-2">
                         {trends.length === 0 ? (
                           <span className="text-[10px] text-[var(--text-muted)]">No bets yet</span>
                         ) : (
-                          <>
-                            {trends.map((trend, idx) => {
-                              const tooltipText = `${trend.matchName}: ${trend.pointsDelta && trend.pointsDelta > 0 ? '+' : ''}${trend.pointsDelta ?? 0} pts`;
-                              let bgColor = 'rgba(100, 116, 139, 0.6)';
-                              if (trend.status === 'won') bgColor = 'var(--accent-text, #5DADE2)';
-                              else if (trend.status === 'lost') bgColor = 'rgba(248, 113, 113, 0.8)';
-                              else if (trend.status === 'locked') bgColor = 'rgba(245, 158, 11, 0.8)';
-                              return (
-                                <div
-                                  key={idx}
-                                  className="bet-trend-dot"
-                                  data-status={trend.status}
-                                  title={tooltipText}
-                                  style={{
-                                    width: '12px',
-                                    height: '12px',
-                                    borderRadius: '50%',
-                                    backgroundColor: bgColor,
-                                    flexShrink: 0,
-                                    opacity: 0.85,
-                                    transition: 'opacity 0.15s ease, transform 0.15s ease',
-                                    cursor: 'help',
-                                  }}
-                                  onMouseEnter={(e) => {
-                                    e.currentTarget.style.opacity = '1';
-                                    e.currentTarget.style.transform = 'scale(1.3)';
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    e.currentTarget.style.opacity = '0.85';
-                                    e.currentTarget.style.transform = 'scale(1)';
-                                  }}
-                                />
-                              );
-                            })}
-                            {/* Ghost dots for remaining slots */}
-                            {Array.from({ length: 5 - trends.length }).map((_, idx) => (
+                          trends.map((trend, idx) => {
+                            const isNoBet = trend.status === 'no_bet';
+                            const tooltipText = isNoBet
+                              ? `${trend.matchName}: Not betted`
+                              : `${trend.matchName}: ${trend.status.charAt(0).toUpperCase() + trend.status.slice(1)}`;
+                            let bgColor: string | undefined;
+                            if (trend.status === 'won') {
+                              bgColor = 'var(--accent-text, #5DADE2)';
+                            } else if (trend.status === 'lost') {
+                              bgColor = 'rgba(248, 113, 113, 0.8)';
+                            } else if (trend.status === 'locked') {
+                              bgColor = 'rgba(245, 158, 11, 0.8)';
+                            } else {
+                              // no_bet — light gray filled circle
+                              bgColor = 'rgba(156, 163, 175, 0.25)';
+                            }
+                            return (
                               <div
-                                key={`ghost-${idx}`}
+                                key={idx}
+                                className="bet-trend-dot"
+                                data-status={trend.status}
+                                title={tooltipText}
                                 style={{
                                   width: '12px',
                                   height: '12px',
                                   borderRadius: '50%',
-                                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                                  backgroundColor: 'transparent',
+                                  backgroundColor: bgColor,
                                   flexShrink: 0,
+                                  opacity: isNoBet ? 0.6 : 0.85,
+                                  transition: 'opacity 0.15s ease, transform 0.15s ease',
+                                  cursor: 'help',
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.opacity = '1';
+                                  e.currentTarget.style.transform = 'scale(1.3)';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.opacity = isNoBet ? '0.6' : '0.85';
+                                  e.currentTarget.style.transform = 'scale(1)';
                                 }}
                               />
-                            ))}
-                          </>
+                            );
+                          })
                         )}
                       </div>
                     </div>

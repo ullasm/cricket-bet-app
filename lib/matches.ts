@@ -492,3 +492,27 @@ export async function getCompletedMatchesForGroup(groupId: string): Promise<Matc
     .map((d) => ({ id: d.id, ...d.data() } as Match))
     .sort((a, b) => a.matchDate.toMillis() - b.matchDate.toMillis());
 }
+
+/**
+ * Returns the last N settled matches (completed or abandoned) for a group,
+ * ordered by matchDate descending (newest first).
+ * Used for the points page trend dots — shows the most recent matches
+ * regardless of whether the user placed a bet.
+ */
+export async function getLastNSettledMatches(
+  groupId: string,
+  n: number = 5
+): Promise<Match[]> {
+  const snap = await getDocs(
+    query(
+      collection(db, 'matches'),
+      where('groupId', '==', groupId),
+      where('status', 'in', ['completed', 'abandoned'])
+    )
+  );
+  return snap.docs
+    .map((d) => ({ id: d.id, ...d.data() } as Match))
+    .sort((a, b) => b.matchDate.toMillis() - a.matchDate.toMillis())
+    .slice(0, n)
+    .reverse(); // oldest first, newest last (left to right)
+}

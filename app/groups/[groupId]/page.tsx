@@ -86,6 +86,7 @@ function MatchCard({ match, groupId, myBet, bets, memberNames, currentUserId, on
 
   const [editingBet, setEditingBet] = useState(false);
   const [selectedOutcome, setSelectedOutcome] = useState<Outcome | null>((myBet?.pickedOutcome as Outcome | undefined) ?? null);
+  const MIN_STAKE = 100;
   const [stakeInput, setStakeInput] = useState<string>(String(myBet?.stake ?? 1000));
   const stake = Math.max(0, parseInt(stakeInput) || 0);
   const [updatingBet, setUpdatingBet] = useState(false);
@@ -252,6 +253,13 @@ function MatchCard({ match, groupId, myBet, bets, memberNames, currentUserId, on
           <div className="space-y-2">
             <p className="text-xs font-semibold text-[var(--text-secondary)]">Points</p>
             <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setStakeInput('')}
+                className="flex-1 rounded-lg px-2 py-1.5 text-xs font-semibold border transition-colors bg-[var(--bg-card)] text-[var(--text-secondary)] border-[var(--border)] hover:bg-[var(--bg-hover)]"
+              >
+                Clear
+              </button>
               {STAKE_PRESETS.map((p) => (
                 <button
                   key={p}
@@ -287,18 +295,20 @@ function MatchCard({ match, groupId, myBet, bets, memberNames, currentUserId, on
               )}
             </div>
           </div>
-          {!selectedOutcome && (
-            <p className="text-center text-xs text-[var(--text-muted)]">Pick a team above to continue</p>
-          )}
+          {!selectedOutcome ? (
+            <p className="text-center text-xs text-yellow-300">Pick a team above to continue</p>
+          ) : stake < MIN_STAKE ? (
+            <p className="text-center text-xs text-yellow-300">Minimum {MIN_STAKE} points required to place a bet</p>
+          ) : null}
           <Button
             type="button"
             variant="primary"
             size="lg"
             loading={updatingBet}
-            disabled={!selectedOutcome || stake < 1}
+            disabled={!selectedOutcome || stake < MIN_STAKE}
             onPointerDown={(e) => e.preventDefault()}
             onClick={handleChangeBet}
-            className={`w-full transition-opacity ${!selectedOutcome || stake < 1 ? 'opacity-30' : 'opacity-100'}`}
+            className={`w-full transition-opacity ${!selectedOutcome || stake < MIN_STAKE ? 'opacity-30' : 'opacity-100'}`}
           >
             {updatingBet ? 'Saving…' : myBet ? 'Confirm change' : 'Confirm bet'}
           </Button>
@@ -606,12 +616,6 @@ function GroupDashboardContent() {
     return true;
   });
 
-  // Last 2 past matches where the current user placed a bet
-  const recentBetMatches = pastMatches
-    .filter((m) => myBets[m.id])
-    .sort((a, b) => b.matchDate.toMillis() - a.matchDate.toMillis())
-    .slice(0, 1);
-
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
       <AppNavbar
@@ -634,23 +638,6 @@ function GroupDashboardContent() {
 
       {/* Content */}
       <main className="max-w-5xl mx-auto px-2 py-8 space-y-8">
-
-        {/* Recent bets */}
-        {recentBetMatches.length > 0 && (
-          <section>
-            <SectionHeader title="Recent" mb="mb-3" />
-            <div className="space-y-3">
-              {recentBetMatches.map((m) => (
-                <SettledMatchCard
-                  key={m.id}
-                  match={m}
-                  bets={allBets[m.id] ?? []}
-                  memberNames={memberNames}
-                />
-              ))}
-            </div>
-          </section>
-        )}
 
         {/* Recent & Upcoming — yesterday onwards */}
         <section>
