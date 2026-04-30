@@ -23,7 +23,11 @@ function RegisterForm() {
 
   useEffect(() => {
     if (!loading && user) {
-      router.replace(redirectTo);
+      if (!user.emailVerified) {
+        router.replace(`/verify-email?email=${encodeURIComponent(user.email ?? '')}&redirect=${encodeURIComponent(redirectTo)}`);
+      } else {
+        router.replace(redirectTo);
+      }
     }
   }, [user, loading, router, redirectTo]);
 
@@ -43,8 +47,8 @@ function RegisterForm() {
     setSubmitting(true);
     try {
       await registerUser(email, password, displayName);
-      toast.success('Account created! Welcome to WhoWins!');
-      router.replace(redirectTo);
+      toast.success('Account created! Please verify your email.');
+      router.replace(`/verify-email?email=${encodeURIComponent(email)}&redirect=${encodeURIComponent(redirectTo)}`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to create account');
     } finally {

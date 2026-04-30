@@ -10,9 +10,13 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading && !user) {
+    if (loading) return;
+    if (!user) {
       const redirectTo = `${window.location.pathname}${window.location.search}`;
       router.replace(`/login?redirect=${encodeURIComponent(redirectTo)}`);
+    } else if (!user.emailVerified) {
+      const redirectTo = `${window.location.pathname}${window.location.search}`;
+      router.replace(`/verify-email?email=${encodeURIComponent(user.email ?? '')}&redirect=${encodeURIComponent(redirectTo)}`);
     }
   }, [user, loading, router]);
 
@@ -20,7 +24,7 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
     return <Spinner size="lg" fullPage />;
   }
 
-  if (!user) return null;
+  if (!user || !user.emailVerified) return null;
 
   return <>{children}</>;
 }

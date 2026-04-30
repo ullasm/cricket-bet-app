@@ -5,6 +5,7 @@ import {
   signInWithPopup,
   GoogleAuthProvider,
   UserCredential,
+  sendEmailVerification,
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from './firebase';
@@ -27,6 +28,8 @@ export async function registerUser(
   const credential = await createUserWithEmailAndPassword(auth, email, password);
   const { user } = credential;
 
+  await sendEmailVerification(user);
+
   await setDoc(doc(db, 'users', user.uid), {
     uid: user.uid,
     displayName,
@@ -38,6 +41,12 @@ export async function registerUser(
   });
 
   return user;
+}
+
+export async function resendVerificationEmail(): Promise<void> {
+  const user = auth.currentUser;
+  if (!user) throw new Error('No user signed in');
+  await sendEmailVerification(user);
 }
 
 export async function loginUser(
