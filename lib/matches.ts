@@ -395,9 +395,9 @@ export async function adminUpsertBetForMatch(
   userId: string,
   betInput: BetInput
 ): Promise<void> {
-  if (process.env.ALLOW_MANAGE_MATCHES !== 'true') {
-    throw new Error('Match management is disabled');
-  }
+  // if (process.env.ALLOW_MANAGE_MATCHES !== 'true') {
+  //   throw new Error('Match management is disabled');
+  // }
   const currentMatch = await getMatchById(matchId);
   if (!currentMatch) {
     throw new Error('Match not found');
@@ -450,9 +450,9 @@ export async function adminClearBetForMatch(
   groupId: string,
   userId: string
 ): Promise<void> {
-  if (process.env.ALLOW_MANAGE_MATCHES !== 'true') {
-    throw new Error('Match management is disabled');
-  }
+  // if (process.env.ALLOW_MANAGE_MATCHES !== 'true') {
+  //   throw new Error('Match management is disabled');
+  // }
   const currentMatch = await getMatchById(matchId);
   if (!currentMatch) {
     throw new Error('Match not found');
