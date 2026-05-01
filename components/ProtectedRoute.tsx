@@ -9,6 +9,7 @@ const EMAIL_VERIFICATION_BYPASS = new Set([
   'vishi@gmail.com',
   'chetannauj@gmail.com',
   'raghustps1@gmail.com',
+  'ullas.inet+1@gmail.com',
 ]);
 
 export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
